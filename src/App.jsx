@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { testSupabaseConnection } from "./supabaseTest";
+import Auth from "./Auth";
 import {
 Search, ShieldCheck, MessageCircle, Menu, X, MapPin,
 Heart, ShoppingBag, UserRound, Plus, ArrowLeft,
@@ -72,6 +74,10 @@ const categories = [
 ];
 
 function App() {
+useEffect(() => {
+testSupabaseConnection();
+}, []);
+const [showAuth, setShowAuth] = useState(false);
 const [products, setProducts] = useState(initialProducts);
 const [search, setSearch] = useState("");
 const [category, setCategory] = useState("All");
@@ -206,6 +212,12 @@ document.getElementById("marketplace")?.scrollIntoView({ behavior: "smooth" });
 </button>
 <button className="sell-button" onClick={() => setActiveModal("sell")}>
 <Plus size={18} /> Sell an item
+</button>
+<button
+className="saved-nav"
+onClick={() => setShowAuth(true)}
+>
+<UserRound size={17} /> Login / Register
 </button>
 <button className="menu-button" onClick={() => setMobileMenu(!mobileMenu)} aria-label="Toggle menu">
 {mobileMenu ? <X /> : <Menu />}
@@ -503,6 +515,7 @@ setActiveModal("message");
 </div>
 </div>
 )}
+{showAuth && <Auth onClose={() => setShowAuth(false)} />}
 </div>
 );
 }
