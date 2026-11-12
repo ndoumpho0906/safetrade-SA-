@@ -6,16 +6,103 @@ ArrowRight, Heart, ShoppingBag, UserRound, Plus
 import "./App.css";
 
 const products = [
-{ id: 1, name: "iPhone 13 Pro", category: "Electronics", price: "R8,500", location: "Cape Town", seller: "Tech Corner", verified: true, emoji: "📱", color: "#e8edf8" },
-{ id: 2, name: "Modern Sofa Set", category: "Home & Furniture", price: "R4,200", location: "Johannesburg", seller: "Home Living SA", verified: true, emoji: "🛋️", color: "#f2e9df" },
-{ id: 3, name: "Mountain Bicycle", category: "Sports", price: "R2,800", location: "Pretoria", seller: "Cycle World", verified: true, emoji: "🚲", color: "#e8f0e7" },
-{ id: 4, name: "PlayStation 5", category: "Electronics", price: "R9,000", location: "Durban", seller: "Gaming Hub", verified: false, emoji: "🎮", color: "#eeebf8" },
-{ id: 5, name: "Designer Handbag", category: "Fashion", price: "R1,500", location: "Cape Town", seller: "Style Boutique", verified: true, emoji: "👜", color: "#f5e9ec" },
-{ id: 6, name: "Toyota Corolla", category: "Vehicles", price: "R145,000", location: "Polokwane", seller: "Auto Direct", verified: true, emoji: "🚗", color: "#e8edf0" },
-{ id: 7, name: "Study Desk", category: "Home & Furniture", price: "R950", location: "Stellenbosch", seller: "Furniture Store", verified: true, emoji: "🪑", color: "#f1eddf" },
-{ id: 8, name: "Samsung Smart TV", category: "Electronics", price: "R5,500", location: "Cape Town", seller: "Digital SA", verified: true, emoji: "📺", color: "#e9edf3" }
+{
+id: 1,
+name: "iPhone 13 Pro Max",
+category: "Electronics",
+price: "R8500",
+location: "Cape Town",
+seller: "Tech Corner",
+verified: true,
+emoji: "📱",
+color: "#e8edf8",
+image: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=600"
+},
+{
+id: 2,
+name: "Modern Sofa Set",
+category: "Home & Furniture",
+price: "R4,200",
+location: "Johannesburg",
+seller: "Home Living SA",
+verified: true,
+emoji: "🛋️",
+color: "#f2e9df",
+image: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600"
+},
+{
+id: 3,
+name: "Mountain Bicycle",
+category: "Sports",
+price: "R2,800",
+location: "Pretoria",
+seller: "Cycle World",
+verified: true,
+emoji: "🚲",
+color: "#e8f0e7",
+image: "https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=600"
+},
+{
+id: 4,
+name: "PlayStation 5",
+category: "Electronics",
+price: "R9,000",
+location: "Durban",
+seller: "Gaming Hub",
+verified: false,
+emoji: "🎮",
+color: "#eeebf8",
+image: "https://images.unsplash.com/photo-1606813907291-d86efa9b94db?w=600"
+},
+{
+id: 5,
+name: "Designer Handbag",
+category: "Fashion",
+price: "R1,500",
+location: "Cape Town",
+seller: "Style Boutique",
+verified: true,
+emoji: "👜",
+color: "#f5e9ec",
+image: "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=600"
+},
+{
+id: 6,
+name: "Toyota Corolla",
+category: "Vehicles",
+price: "R145,000",
+location: "Polokwane",
+seller: "Auto Direct",
+verified: true,
+emoji: "🚗",
+color: "#e8edf0",
+image: "https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=600"
+},
+{
+id: 7,
+name: "Study Desk",
+category: "Home & Furniture",
+price: "R950",
+location: "Stellenbosch",
+seller: "Furniture Store",
+verified: true,
+emoji: "🪑",
+color: "#f1eddf",
+image: "https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?w=600"
+},
+{
+id: 8,
+name: "Samsung Smart TV",
+category: "Electronics",
+price: "R5,500",
+location: "Cape Town",
+seller: "Digital SA",
+verified: true,
+emoji: "📺",
+color: "#e9edf3",
+image: "https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=600"
+}
 ];
-
 const categories = ["All products", "Electronics", "Vehicles", "Home & Furniture", "Fashion", "Sports"];
 
 export default function App() {
@@ -94,7 +181,15 @@ return (
 {filtered.map(product => (
 <article className="product-card" key={product.id}>
 <div className="product-image" style={{ background: product.color }}>
+{product.image ? (
+<img
+src={product.image}
+alt={product.name}
+className="product-image"
+/>
+) : (
 <span>{product.emoji}</span>
+)}
 <button className="heart-btn" aria-label="Save listing" onClick={() => setSaved(old => old.includes(product.id) ? old.filter(id => id !== product.id) : [...old, product.id])}>
 <Heart size={18} fill={saved.includes(product.id) ? "#d94c60" : "none"} color={saved.includes(product.id) ? "#d94c60" : "currentColor"} />
 </button>
