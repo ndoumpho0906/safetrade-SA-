@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import {
   Search,
@@ -201,7 +202,6 @@ function formatPrice(value) {
   })}`;
 }
 
-// Extracts the file path of a photo stored in the Supabase bucket.
 function getProductImagePath(imageUrl) {
   if (!imageUrl) return null;
 
@@ -498,7 +498,13 @@ function App() {
     setShowAuth(true);
   }
 
+  // Login is required before a user can save or remove a favourite.
   function toggleSaved(id) {
+    if (!user) {
+      openAuth();
+      return;
+    }
+
     setSaved((current) =>
       current.includes(id)
         ? current.filter((item) => item !== id)
@@ -668,14 +674,12 @@ function App() {
     let uploadedImagePath = null;
 
     try {
-      // Keep the existing photo when editing unless the user removes it.
       let imageUrl = isEditing ? existingProduct.image || "" : "";
 
       if (removeExistingImage) {
         imageUrl = "";
       }
 
-      // Upload a replacement photo when the user selects one.
       if (selectedImage) {
         const fileExtension =
           selectedImage.name.split(".").pop()?.toLowerCase() || "jpg";
@@ -761,7 +765,6 @@ function App() {
         image: data.image || "",
       };
 
-      // Update the local marketplace immediately.
       if (isEditing) {
         setProducts((current) =>
           current.map((item) =>
@@ -775,7 +778,6 @@ function App() {
         ]);
       }
 
-      // Only remove the old photo after the database update succeeds.
       if (isEditing && (selectedImage || removeExistingImage)) {
         const oldImagePath = getProductImagePath(existingProduct.image);
 
@@ -809,7 +811,6 @@ function App() {
           : "Your listing has been saved to SafeTrade and is now visible in the marketplace."
       );
     } catch (error) {
-      // Remove a newly uploaded photo if saving the listing failed.
       if (uploadedImagePath) {
         try {
           await supabase.storage
@@ -867,7 +868,6 @@ function App() {
         );
       }
 
-      // Remove the listing from the page.
       setProducts((current) =>
         current.filter((item) => item.id !== product.id)
       );
@@ -884,7 +884,6 @@ function App() {
         setModal(null);
       }
 
-      // Remove the associated uploaded photo, if it belongs to our bucket.
       const imagePath = getProductImagePath(product.image);
 
       let photoWarning = "";
@@ -996,6 +995,11 @@ function App() {
               className="saved-nav"
               aria-pressed={savedOnly}
               onClick={() => {
+                if (!user) {
+                  openAuth();
+                  return;
+                }
+
                 setSavedOnly((current) => !current);
                 setMyListingsOnly(false);
                 scrollToMarketplace();
@@ -1190,6 +1194,11 @@ function App() {
               className={`category-chip${savedOnly ? " active" : ""}`}
               aria-pressed={savedOnly}
               onClick={() => {
+                if (!user) {
+                  openAuth();
+                  return;
+                }
+
                 setSavedOnly((current) => !current);
                 setMyListingsOnly(false);
               }}
@@ -1629,15 +1638,20 @@ function App() {
                   ) : (
                     <button
                       className="primary-wide"
-                      onClick={() =>
+                      onClick={() => {
+                        if (!user) {
+                          openAuth();
+                          return;
+                        }
+
                         showNotice(
                           "Messaging is not connected",
-                          "No message has been sent. This demonstration does not connect you to a seller."
-                        )
-                      }
+                          "You are signed in, but seller messaging is still being developed. No message has been sent."
+                        );
+                      }}
                     >
                       <MessageCircle size={17} />
-                      Contact seller — demo
+                      Contact seller
                     </button>
                   )}
 
