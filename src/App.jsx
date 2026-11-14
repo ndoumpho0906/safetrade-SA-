@@ -1,523 +1,1329 @@
-import { useState, useEffect } from "react";
-import { testSupabaseConnection } from "./supabaseTest";
-import Auth from "./Auth";
+import { useEffect, useRef, useState } from "react";
 import {
-Search, ShieldCheck, MessageCircle, Menu, X, MapPin,
-Heart, ShoppingBag, UserRound, Plus, ArrowLeft,
-ChevronRight, Camera, Flag, Send, CheckCircle,
-Smartphone, Sofa, Car, Laptop, Bike, Watch
+  Search,
+  ShieldCheck,
+  MessageCircle,
+  Menu,
+  X,
+  MapPin,
+  Heart,
+  ShoppingBag,
+  UserRound,
+  Plus,
+  ChevronRight,
+  Flag,
+  CheckCircle,
+  LogOut,
 } from "lucide-react";
+import Auth from "./Auth";
+import { supabase } from "./supabaseClient";
 import "./App.css";
 
-const initialProducts = [
-{
-id: 1, name: "iPhone 13 Pro Max", category: "Electronics",
-price: "R8,500", location: "Cape Town", seller: "Tech Corner",
-verified: true, emoji: "📱",
-image: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=800",
-description: "iPhone 13 Pro Max in excellent condition. Contact the seller for more photographs and details."
-},
-{
-id: 2, name: "Modern Sofa Set", category: "Furniture",
-price: "R4,200", location: "Johannesburg", seller: "Home Living SA",
-verified: true, emoji: "🛋️",
-image: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800",
-description: "Comfortable modern sofa set. Contact the seller to arrange an inspection."
-},
-{
-id: 3, name: "Mountain Bicycle", category: "Sports",
-price: "R2,800", location: "Pretoria", seller: "Cycle World",
-verified: true, emoji: "🚲",
-image: "https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=800",
-description: "Mountain bicycle suitable for everyday riding and outdoor adventures."
-},
-{
-id: 4, name: "PlayStation 5", category: "Electronics",
-price: "R9,000", location: "Durban", seller: "Gaming Hub",
-verified: false, emoji: "🎮",
-image: "https://images.unsplash.com/photo-1606813907291-d86efa9b94db?w=800",
-description: "PlayStation console listing. Ask the seller about condition and included accessories."
-},
-{
-id: 5, name: "Designer Handbag", category: "Fashion",
-price: "R1,500", location: "Cape Town", seller: "Style Boutique",
-verified: true, emoji: "👜",
-image: "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800",
-description: "Fashion handbag. Request additional photographs and proof of authenticity where applicable."
-},
-{
-id: 6, name: "Toyota Corolla", category: "Vehicles",
-price: "R145,000", location: "Polokwane", seller: "Auto Direct",
-verified: true, emoji: "🚗",
-image: "https://images.unsplash.com/photo-1621007947382-bb3c3994e3fb?w=800",
-description: "Vehicle listing. Arrange an in-person inspection and verify all vehicle documents before paying."
-},
-{
-id: 7, name: "Study Desk", category: "Furniture",
-price: "R950", location: "Stellenbosch", seller: "Furniture Store",
-verified: true, emoji: "🪑",
-image: "https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?w=800",
-description: "Study desk suitable for a home office or student workspace."
-},
-{
-id: 8, name: "Samsung Smart TV", category: "Electronics",
-price: "R5,500", location: "Cape Town", seller: "Digital SA",
-verified: true, emoji: "📺",
-image: "https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=800",
-description: "Samsung Smart TV listing. Contact the seller to confirm the screen size, condition and accessories."
-}
-];
-
 const categories = [
-"All", "Electronics", "Vehicles", "Furniture",
-"Fashion", "Sports", "Home & Garden"
+  "All",
+  "Electronics",
+  "Furniture",
+  "Vehicles",
+  "Fashion",
+  "Home & Garden",
 ];
 
-function App() {
-useEffect(() => {
-testSupabaseConnection();
-}, []);
-const [showAuth, setShowAuth] = useState(false);
-const [products, setProducts] = useState(initialProducts);
-const [search, setSearch] = useState("");
-const [category, setCategory] = useState("All");
-const [saved, setSaved] = useState([]);
-const [selectedProduct, setSelectedProduct] = useState(null);
-const [selectedSeller, setSelectedSeller] = useState(null);
-const [activeModal, setActiveModal] = useState("");
-const [mobileMenu, setMobileMenu] = useState(false);
-const [message, setMessage] = useState("");
-const [reportReason, setReportReason] = useState("");
-const [newProduct, setNewProduct] = useState({
-name: "", category: "Electronics", price: "",
-location: "", seller: "", phone: "", description: "", image: ""
-});
+// Sample photos are illustrative and may not show the exact item described.
+const initialProducts = [
+  {
+    id: "sample-phone",
+    name: "iPhone 13 — 128GB",
+    category: "Electronics",
+    price: 6500,
+    location: "Johannesburg",
+    seller: "Demo Seller A",
+    image:
+      "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=800&q=80",
+    description:
+      "Demonstration listing for a used phone. This item is not actually offered for sale.",
+  },
+  {
+    id: "sample-sofa",
+    name: "Three-seater sofa",
+    category: "Furniture",
+    price: 3200,
+    location: "Cape Town",
+    seller: "Demo Seller B",
+    image:
+      "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80",
+    description:
+      "Demonstration listing for a sofa. Product details and price are sample data.",
+  },
+  {
+    id: "sample-car",
+    name: "Compact city car",
+    category: "Vehicles",
+    price: 85000,
+    location: "Pretoria",
+    seller: "Demo Seller C",
+    image:
+      "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=800&q=80",
+    description:
+      "Demonstration vehicle listing. No ownership, vehicle history, or condition checks have been performed.",
+  },
+  {
+    id: "sample-shoes",
+    name: "Casual sneakers",
+    category: "Fashion",
+    price: 450,
+    location: "Durban",
+    seller: "Demo Seller D",
+    image:
+      "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80",
+    description:
+      "Demonstration listing for casual sneakers. This is not a live advertisement.",
+  },
+  {
+    id: "sample-laptop",
+    name: "Everyday laptop",
+    category: "Electronics",
+    price: 4800,
+    location: "Bloemfontein",
+    seller: "Demo Seller E",
+    image:
+      "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=800&q=80",
+    description:
+      "Sample laptop listing for testing the marketplace interface. Specifications are not verified.",
+  },
+  {
+    id: "sample-chair",
+    name: "Office chair",
+    category: "Furniture",
+    price: 950,
+    location: "Gqeberha",
+    seller: "Demo Seller F",
+    image:
+      "https://unsplash.com/photos/E4hB0LMXXc0/download?force=true",
+    description:
+      "Sample office chair listing. No actual seller or product is connected to this demonstration.",
+  },
+  {
+    id: "sample-plants",
+    name: "Indoor plant collection",
+    category: "Home & Garden",
+    price: 350,
+    location: "Stellenbosch",
+    seller: "Demo Seller G",
+    image:
+      "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?auto=format&fit=crop&w=800&q=80",
+    description:
+      "Demonstration listing for indoor plants and pots. Availability is not real.",
+  },
+  {
+    id: "sample-jacket",
+    name: "Winter jacket",
+    category: "Fashion",
+    price: 600,
+    location: "Polokwane",
+    seller: "Demo Seller H",
+    image:
+      "https://unsplash.com/photos/92_tCTr9rtw/download?force=true",
+    description:
+      "Sample winter jacket listing used to demonstrate browsing and saved items.",
+  },
+  {
+    id: "sample-playstation",
+    name: "PlayStation 5",
+    category: "Electronics",
+    price: 8500,
+    location: "Johannesburg",
+    seller: "Demo Seller I",
+    image:
+      "https://images.unsplash.com/photo-1606813907291-d86efa9b94db?auto=format&fit=crop&w=800&q=80",
+    description:
+      "Demonstration gaming console listing. The photo and price are illustrative only.",
+  },
+  {
+    id: "sample-corolla",
+    name: "Toyota Corolla",
+    category: "Vehicles",
+    price: 145000,
+    location: "Pretoria",
+    seller: "Demo Seller J",
+    image:
+      "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=800&q=80",
+    description:
+      "Demonstration vehicle listing. The photo is illustrative and may not show the exact model. This is not a real sale.",
+  },
+];
 
-const filteredProducts = products.filter((product) => {
-const matchesCategory = category === "All" || product.category === category;
-const searchText = search.toLowerCase();
-const matchesSearch =
-product.name.toLowerCase().includes(searchText) ||
-product.category.toLowerCase().includes(searchText) ||
-product.location.toLowerCase().includes(searchText) ||
-product.seller.toLowerCase().includes(searchText);
-
-return matchesCategory && matchesSearch;
-});
-
-function toggleSaved(id) {
-setSaved((previous) =>
-previous.includes(id)
-? previous.filter((item) => item !== id)
-: [...previous, id]
-);
-}
-
-function openSeller(product) {
-setSelectedSeller({
-name: product.seller,
-location: product.location,
-verified: product.verified
-});
-setSelectedProduct(null);
-setActiveModal("seller");
-}
-
-function contactOnWhatsApp(product) {
-const phone = product.phone || "";
-if (!phone) {
-alert("The seller has not added a WhatsApp number to this demonstration listing yet.");
-return;
-}
-const cleanPhone = phone.replace(/\D/g, "");
-const text = encodeURIComponent(
-`Hi, I am interested in your ${product.name} listed on SafeTrade. Is it still available?`
-);
-window.open(`https://wa.me/${cleanPhone}?text=${text}`, "_blank");
-}
-
-function submitListing(event) {
-event.preventDefault();
-
-const listing = {
-...newProduct,
-id: Date.now(),
-price: newProduct.price.startsWith("R")
-? newProduct.price
-: `R${newProduct.price}`,
-verified: false,
-emoji: "📦",
-image: newProduct.image || "",
-description: newProduct.description || "Please contact the seller for more information."
+const emptyProduct = {
+  name: "",
+  category: "Electronics",
+  price: "",
+  seller: "",
+  location: "",
+  description: "",
 };
 
-setProducts((previous) => [listing, ...previous]);
-setNewProduct({
-name: "", category: "Electronics", price: "",
-location: "", seller: "", phone: "", description: "", image: ""
-});
-setActiveModal("");
-setCategory("All");
-setSearch("");
-alert("Your demonstration listing has been added to this page. It has not been submitted to a real admin for approval.");
+const steps = [
+  {
+    title: "Discover",
+    text: "Search the marketplace and explore demonstration listings.",
+    Icon: Search,
+  },
+  {
+    title: "Review the seller",
+    text: "Look at the available information before deciding to trade.",
+    Icon: UserRound,
+  },
+  {
+    title: "Connect",
+    text: "Messaging is planned but is not connected in this version.",
+    Icon: MessageCircle,
+  },
+  {
+    title: "Trade carefully",
+    text: "This demonstration does not process payments or guarantee trades.",
+    Icon: ShieldCheck,
+  },
+];
+
+function formatPrice(value) {
+  return `R ${Number(value).toLocaleString("en-ZA", {
+    maximumFractionDigits: 2,
+  })}`;
 }
 
-function submitMessage(event) {
-event.preventDefault();
-if (!message.trim()) return;
-alert("This is a demonstration messaging interface. Messages are not yet delivered or stored.");
-setMessage("");
-setActiveModal("");
+function ProductImage({ product }) {
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [product.image]);
+
+  if (!product.image || failed) {
+    return (
+      <span
+        style={{
+          display: "grid",
+          placeItems: "center",
+          width: "100%",
+          height: "100%",
+          minHeight: "145px",
+          color: "#77847d",
+          fontSize: "14px",
+          background: "#f1f5f2",
+        }}
+      >
+        Photo unavailable
+      </span>
+    );
+  }
+
+  return (
+    <img
+      src={product.image}
+      alt={`Illustrative sample for ${product.name}`}
+      loading="lazy"
+      onError={() => setFailed(true)}
+      style={{
+        display: "block",
+        width: "100%",
+        height: "100%",
+        objectFit: "cover",
+      }}
+    />
+  );
 }
 
-function submitReport(event) {
-event.preventDefault();
-if (!reportReason) {
-alert("Please select a reason for your report.");
-return;
-}
-alert("Your demonstration report has been recorded on this screen only. It has not been sent to an admin.");
-setReportReason("");
-setActiveModal("");
-}
+function App() {
+  const [products, setProducts] = useState(initialProducts);
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("All");
+  const [saved, setSaved] = useState([]);
+  const [savedOnly, setSavedOnly] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [modal, setModal] = useState(null);
+  const [showAuth, setShowAuth] = useState(false);
+  const [session, setSession] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [authError, setAuthError] = useState("");
+  const [signingOut, setSigningOut] = useState(false);
+  const [newProduct, setNewProduct] = useState({ ...emptyProduct });
+  const [formError, setFormError] = useState("");
 
-function closeModal() {
-setActiveModal("");
-setSelectedProduct(null);
-setSelectedSeller(null);
-}
+  const dialogRef = useRef(null);
+  const closeButtonRef = useRef(null);
+  const overlayOpen = Boolean(modal || showAuth);
 
-return (
-<div className="app">
-<header className="header">
-<div className="nav-container">
-<a href="#home" className="brand">
-<span className="brand-icon"><ShieldCheck size={25} /></span>
-<span>SafeTrade<span className="brand-sa"> SA</span></span>
-</a>
+  useEffect(() => {
+    let active = true;
 
-<nav className={mobileMenu ? "nav-links open" : "nav-links"}>
-<a href="#marketplace" onClick={() => setMobileMenu(false)}>Marketplace</a>
-<a href="#how-it-works" onClick={() => setMobileMenu(false)}>How it works</a>
-<a href="#safety" onClick={() => setMobileMenu(false)}>Safety centre</a>
-</nav>
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (!active) return;
 
-<div className="nav-actions">
-<button className="saved-nav" onClick={() => {
-setCategory("All");
-setSearch("");
-document.getElementById("marketplace")?.scrollIntoView({ behavior: "smooth" });
-}}>
-<Heart size={17} /> Saved ({saved.length})
-</button>
-<button className="sell-button" onClick={() => setActiveModal("sell")}>
-<Plus size={18} /> Sell an item
-</button>
-<button
-className="saved-nav"
-onClick={() => setShowAuth(true)}
->
-<UserRound size={17} /> Login / Register
-</button>
-<button className="menu-button" onClick={() => setMobileMenu(!mobileMenu)} aria-label="Toggle menu">
-{mobileMenu ? <X /> : <Menu />}
-</button>
-</div>
-</div>
-</header>
+      setSession(nextSession);
+      setAuthLoading(false);
+      setAuthError("");
+    });
 
-<main>
-<section className="hero" id="home">
-<div className="hero-content">
-<span className="eyebrow"><ShieldCheck size={15} /> A safer way to trade</span>
-<h1>Buy and sell with<br /><span>more confidence.</span></h1>
-<p>Discover products, connect with sellers and make informed trading decisions across South Africa.</p>
+    supabase.auth
+      .getSession()
+      .then(({ data, error }) => {
+        if (!active) return;
 
-<div className="hero-search">
-<Search size={21} />
-<input
-value={search}
-onChange={(event) => {
-setSearch(event.target.value);
-document.getElementById("marketplace")?.scrollIntoView({ behavior: "smooth" });
-}}
-placeholder="What are you looking for?"
-/>
-<button onClick={() => document.getElementById("marketplace")?.scrollIntoView({ behavior: "smooth" })}>
-Search
-</button>
-</div>
+        if (error) setAuthError(error.message);
 
-<div className="hero-trust">
-<span><CheckCircle size={16} /> Seller profiles</span>
-<span><CheckCircle size={16} /> Safety guidance</span>
-<span><CheckCircle size={16} /> Direct contact</span>
-</div>
-</div>
-<div className="hero-visual">
-<div className="hero-image-card">
-<img src="https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=900" alt="Shopping marketplace" />
-<div className="hero-floating-card">
-<span className="floating-icon"><ShieldCheck size={22} /></span>
-<div><strong>Trade smarter</strong><small>Always verify before paying</small></div>
-</div>
-</div>
-</div>
-</section>
+        setSession(data?.session ?? null);
+        setAuthLoading(false);
+      })
+      .catch((error) => {
+        if (!active) return;
 
-<section className="trust-strip">
-<div><ShieldCheck /><span><strong>Safety first</strong><small>Practical trading guidance</small></span></div>
-<div><UserRound /><span><strong>Seller profiles</strong><small>Know who you contact</small></span></div>
-<div><MessageCircle /><span><strong>Direct communication</strong><small>Connect with sellers</small></span></div>
-<div><ShoppingBag /><span><strong>Local marketplace</strong><small>Discover items in SA</small></span></div>
-</section>
+        setAuthError(
+          error.message || "Unable to check your login status."
+        );
+        setAuthLoading(false);
+      });
 
-<section className="market-section" id="marketplace">
-<div className="section-heading">
-<div>
-<span className="eyebrow">EXPLORE SAFE TRADE</span>
-<h2>Explore the marketplace</h2>
-<p>Find something you need or discover your next great deal.</p>
-</div>
-<button className="outline-button" onClick={() => setActiveModal("sell")}>
-<Plus size={17} /> Post a listing
-</button>
-</div>
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, []);
 
-<div className="category-list">
-{categories.map((item) => (
-<button
-key={item}
-className={category === item ? "category-chip active" : "category-chip"}
-onClick={() => setCategory(item)}
->
-{item}
-</button>
-))}
-</div>
+  useEffect(() => {
+    if (!overlayOpen) return undefined;
 
-<div className="market-toolbar">
-<div className="result-count">{filteredProducts.length} items found</div>
-<div className="market-search">
-<Search size={17} />
-<input
-value={search}
-onChange={(event) => setSearch(event.target.value)}
-placeholder="Search products, sellers or locations"
-/>
-{search && <button onClick={() => setSearch("")}><X size={16} /></button>}
-</div>
-</div>
+    const previousOverflow = document.body.style.overflow;
+    const previousFocus = document.activeElement;
 
-{filteredProducts.length === 0 ? (
-<div className="empty-state">
-<ShoppingBag size={38} />
-<h3>No listings found</h3>
-<p>Try another search term or category.</p>
-<button className="sell-button" onClick={() => { setSearch(""); setCategory("All"); }}>
-Clear filters
-</button>
-</div>
-) : (
-<div className="product-grid">
-{filteredProducts.map((product) => (
-<article className="product-card" key={product.id}>
-<div className="product-photo" onClick={() => setSelectedProduct(product)}>
-{product.image ? (
-<img src={product.image} alt={product.name} />
-) : (
-<div className="image-placeholder">{product.emoji}</div>
-)}
-<span className="condition-label">For sale</span>
-<button
-className={saved.includes(product.id) ? "heart-button saved" : "heart-button"}
-onClick={(event) => {
-event.stopPropagation();
-toggleSaved(product.id);
-}}
-aria-label="Save listing"
->
-<Heart size={19} fill={saved.includes(product.id) ? "currentColor" : "none"} />
-</button>
-</div>
-<div className="product-info">
-<div className="product-category">{product.category}</div>
-<h3 onClick={() => setSelectedProduct(product)}>{product.name}</h3>
-<div className="product-price">{product.price}</div>
-<div className="product-location"><MapPin size={14} /> {product.location}</div>
-<div className="seller-line">
-<button onClick={() => openSeller(product)} className="seller-link">
-<UserRound size={15} /> {product.seller}
-</button>
-{product.verified && <span className="verified-tag"><ShieldCheck size={13} /> Sample</span>}
-</div>
-<button className="details-button" onClick={() => setSelectedProduct(product)}>
-View details <ChevronRight size={17} />
-</button>
-</div>
-</article>
-))}
-</div>
-)}
-<p className="sample-notice">Demonstration listings only. Product details, prices and seller information are sample data, not verified live advertisements.</p>
-</section>
+    document.body.style.overflow = "hidden";
 
-<section className="how-section" id="how-it-works">
-<div className="section-heading centered">
-<span className="eyebrow">SIMPLE AND STRAIGHTFORWARD</span>
-<h2>How SafeTrade works</h2>
-<p>A few simple steps to help you trade more carefully.</p>
-</div>
-<div className="steps-grid">
-<div className="step-card"><span className="step-number">01</span><Search size={28} /><h3>Discover</h3><p>Search the marketplace and explore available listings.</p></div>
-<div className="step-card"><span className="step-number">02</span><UserRound size={28} /><h3>Review the seller</h3><p>Read the seller profile and ask questions about the item.</p></div>
-<div className="step-card"><span className="step-number">03</span><MessageCircle size={28} /><h3>Connect</h3><p>Contact the seller and arrange a safe way to inspect the item.</p></div>
-<div className="step-card"><span className="step-number">04</span><ShieldCheck size={28} /><h3>Trade carefully</h3><p>Verify the item and payment details before completing a transaction.</p></div>
-</div>
-</section>
+    const frame = window.requestAnimationFrame(() => {
+      if (showAuth) {
+        dialogRef.current?.querySelector("input, button")?.focus();
+      } else {
+        closeButtonRef.current?.focus();
+      }
+    });
 
-<section className="safety-section" id="safety">
-<div className="safety-content">
-<span className="eyebrow">YOUR SAFETY MATTERS</span>
-<h2>Trade with your eyes open.</h2>
-<p>Take time to check the product, seller and payment arrangements. Never let pressure or an attractive price rush your decision.</p>
-<ul>
-<li><CheckCircle /> Meet in a safe, public place where possible.</li>
-<li><CheckCircle /> Inspect the product before making payment.</li>
-<li><CheckCircle /> Never share passwords or banking PINs.</li>
-<li><CheckCircle /> Be cautious of requests for deposits or advance payments.</li>
-</ul>
-</div>
-<div className="safety-art"><ShieldCheck size={105} strokeWidth={1.2} /></div>
-</section>
-</main>
+    function handleKeyDown(event) {
+      if (event.key === "Escape") {
+        setModal(null);
+        setShowAuth(false);
+        setFormError("");
+        return;
+      }
 
-<footer className="footer">
-<a href="#home" className="brand footer-brand"><span className="brand-icon"><ShieldCheck size={23} /></span><span>SafeTrade<span className="brand-sa"> SA</span></span></a>
-<p>A South African marketplace concept built around safer trading.</p>
-<div className="footer-links"><a href="#marketplace">Marketplace</a><a href="#how-it-works">How it works</a><a href="#safety">Safety centre</a></div>
-<small>© {new Date().getFullYear()} SafeTrade South Africa. Demonstration website.</small>
-</footer>
+      if (event.key !== "Tab") return;
 
-{selectedProduct && (
-<div className="modal-backdrop" onClick={closeModal}>
-<div className="modal product-modal" onClick={(event) => event.stopPropagation()}>
-<button className="modal-close" onClick={closeModal}><X /></button>
-<div className="detail-layout">
-<div className="detail-image">
-{selectedProduct.image
-? <img src={selectedProduct.image} alt={selectedProduct.name} />
-: <span>{selectedProduct.emoji}</span>}
-</div>
-<div className="detail-content">
-<span className="product-category">{selectedProduct.category}</span>
-<h2>{selectedProduct.name}</h2>
-<div className="detail-price">{selectedProduct.price}</div>
-<p className="product-location"><MapPin size={15} /> {selectedProduct.location}</p>
-<p>{selectedProduct.description}</p>
-<div className="detail-seller">
-<div className="seller-avatar"><UserRound /></div>
-<div><strong>{selectedProduct.seller}</strong><small>Seller profile</small></div>
-{selectedProduct.verified && <span className="verified-tag"><ShieldCheck size={13} /> Sample</span>}
-</div>
-<button className="primary-wide" onClick={() => {
-setSelectedProduct(null);
-setSelectedSeller({ name: selectedProduct.seller, location: selectedProduct.location, verified: selectedProduct.verified });
-setActiveModal("message");
-}}><MessageCircle size={18} /> Message seller</button>
-<button className="secondary-wide" onClick={() => contactOnWhatsApp(selectedProduct)}>Contact on WhatsApp</button>
-<button className="report-link" onClick={() => { setSelectedProduct(null); setActiveModal("report"); }}><Flag size={15} /> Report this listing</button>
-<p className="modal-disclaimer">The sample badge is not proof of actual seller verification. Always verify details independently.</p>
-</div>
-</div>
-</div>
-</div>
-)}
+      const controls = Array.from(
+        dialogRef.current?.querySelectorAll(
+          'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex="0"]'
+        ) ?? []
+      ).filter((element) => element.getClientRects().length > 0);
 
-{activeModal === "seller" && selectedSeller && (
-<div className="modal-backdrop" onClick={closeModal}>
-<div className="modal small-modal" onClick={(event) => event.stopPropagation()}>
-<button className="modal-close" onClick={closeModal}><X /></button>
-<div className="seller-profile-icon"><UserRound size={38} /></div>
-<h2>{selectedSeller.name}</h2>
-<p className="product-location"><MapPin size={15} /> {selectedSeller.location}</p>
-<div className="profile-status"><ShieldCheck size={17} /> {selectedSeller.verified ? "Sample verified label" : "Not verified in this demo"}</div>
-<p className="modal-disclaimer">This is a demonstration seller profile. No identity checks have been performed.</p>
-<button className="primary-wide" onClick={() => { setSelectedSeller(null); setActiveModal("message"); }}>Message seller</button>
-</div>
-</div>
-)}
+      if (controls.length === 0) return;
 
-{activeModal === "sell" && (
-<div className="modal-backdrop" onClick={closeModal}>
-<div className="modal form-modal" onClick={(event) => event.stopPropagation()}>
-<button className="modal-close" onClick={closeModal}><X /></button>
-<span className="eyebrow">JOIN THE MARKETPLACE</span>
-<h2>Post a listing</h2>
-<p className="form-intro">Provide accurate information about the item you want to sell.</p>
-<form onSubmit={submitListing}>
-<label>Product name<input required value={newProduct.name} onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })} placeholder="e.g. iPhone 14" /></label>
-<div className="form-row">
-<label>Category<select value={newProduct.category} onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}>{categories.filter((item) => item !== "All").map((item) => <option key={item}>{item}</option>)}</select></label>
-<label>Price (R)<input required value={newProduct.price} onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })} placeholder="5000" /></label>
-</div>
-<label>Your name / business<input required value={newProduct.seller} onChange={(e) => setNewProduct({ ...newProduct, seller: e.target.value })} placeholder="Seller name" /></label>
-<div className="form-row">
-<label>Location<input required value={newProduct.location} onChange={(e) => setNewProduct({ ...newProduct, location: e.target.value })} placeholder="City or town" /></label>
-<label>WhatsApp number<input value={newProduct.phone} onChange={(e) => setNewProduct({ ...newProduct, phone: e.target.value })} placeholder="e.g. 27821234567" /></label>
-</div>
-<label>Product image URL<input value={newProduct.image} onChange={(e) => setNewProduct({ ...newProduct, image: e.target.value })} placeholder="Paste an image URL (optional)" /></label>
-<label>Description<textarea value={newProduct.description} onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })} placeholder="Describe the product and its condition" rows="3" /></label>
-<div className="form-note"><ShieldCheck size={16} /> New listings in this demo are not actually reviewed by an administrator.</div>
-<button className="primary-wide" type="submit"><Plus size={18} /> Add demonstration listing</button>
-</form>
-</div>
-</div>
-)}
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      const focusInside = dialogRef.current?.contains(
+        document.activeElement
+      );
 
-{activeModal === "message" && (
-<div className="modal-backdrop" onClick={closeModal}>
-<div className="modal small-modal" onClick={(event) => event.stopPropagation()}>
-<button className="modal-close" onClick={closeModal}><X /></button>
-<span className="eyebrow">CONTACT THE SELLER</span>
-<h2>Send a message</h2>
-<p className="form-intro">Ask a question about the product.</p>
-<form onSubmit={submitMessage}>
-<label>Your message<textarea required rows="5" value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Hi, is this item still available?" /></label>
-<button className="primary-wide" type="submit"><Send size={17} /> Send message</button>
-</form>
-<p className="modal-disclaimer">Messaging is a visual demonstration only. Messages are not delivered.</p>
-</div>
-</div>
-)}
+      if (!focusInside) {
+        event.preventDefault();
+        first.focus();
+      } else if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
 
-{activeModal === "report" && (
-<div className="modal-backdrop" onClick={closeModal}>
-<div className="modal small-modal" onClick={(event) => event.stopPropagation()}>
-<button className="modal-close" onClick={closeModal}><X /></button>
-<span className="eyebrow">HELP KEEP THE MARKETPLACE SAFE</span>
-<h2>Report a listing</h2>
-<p className="form-intro">Choose the reason you believe this listing should be reviewed.</p>
-<form onSubmit={submitReport}>
-<label>Reason for reporting
-<select value={reportReason} onChange={(e) => setReportReason(e.target.value)}>
-<option value="">Select a reason</option>
-<option>Suspected scam or fraud</option>
-<option>Misleading product information</option>
-<option>Suspicious or stolen goods</option>
-<option>Inappropriate content</option>
-<option>Other concern</option>
-</select>
-</label>
-<button className="primary-wide" type="submit"><Flag size={17} /> Submit demonstration report</button>
-</form>
-<p className="modal-disclaimer">Reports are not yet sent to a real moderation team.</p>
-</div>
-</div>
-)}
-{showAuth && <Auth onClose={() => setShowAuth(false)} />}
-</div>
-);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+
+      if (previousFocus?.isConnected) {
+        previousFocus.focus?.();
+      }
+    };
+  }, [overlayOpen, showAuth, modal?.type]);
+
+  const user = session?.user;
+
+  const displayName =
+    user?.user_metadata?.full_name?.trim() ||
+    user?.email?.split("@")[0] ||
+    "My account";
+
+  const normalizedSearch = search.trim().toLowerCase();
+
+  const filteredProducts = products.filter((product) => {
+    const matchesSearch = [
+      product.name,
+      product.location,
+      product.category,
+      product.description,
+    ]
+      .join(" ")
+      .toLowerCase()
+      .includes(normalizedSearch);
+
+    return (
+      matchesSearch &&
+      (category === "All" || product.category === category) &&
+      (!savedOnly || saved.includes(product.id))
+    );
+  });
+
+  function closeModal() {
+    setModal(null);
+    setFormError("");
+  }
+
+  function showNotice(title, text) {
+    setShowAuth(false);
+    setModal({ type: "notice", title, text });
+  }
+
+  function openAuth() {
+    setModal(null);
+    setMenuOpen(false);
+    setShowAuth(true);
+  }
+
+  function toggleSaved(id) {
+    setSaved((current) =>
+      current.includes(id)
+        ? current.filter((item) => item !== id)
+        : [...current, id]
+    );
+  }
+
+  function clearFilters() {
+    setSearch("");
+    setCategory("All");
+    setSavedOnly(false);
+  }
+
+  function scrollToMarketplace() {
+    document.getElementById("marketplace")?.scrollIntoView();
+  }
+
+  function openSellForm() {
+    setMenuOpen(false);
+    setFormError("");
+    setNewProduct({
+      ...emptyProduct,
+      seller: user ? displayName : "",
+    });
+    setModal({ type: "sell" });
+  }
+
+  function updateProduct(field, value) {
+    setNewProduct((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  }
+
+  async function handleSignOut() {
+    setSigningOut(true);
+
+    try {
+      const { error } = await supabase.auth.signOut({
+        scope: "local",
+      });
+
+      if (error) throw error;
+
+      setSession(null);
+      setModal(null);
+      setMenuOpen(false);
+    } catch (error) {
+      showNotice(
+        "Could not log out",
+        error.message || "Please try again."
+      );
+    } finally {
+      setSigningOut(false);
+    }
+  }
+
+  function submitListing(event) {
+    event.preventDefault();
+    setFormError("");
+
+    const price = Number(newProduct.price);
+
+    if (
+      !newProduct.name.trim() ||
+      !newProduct.seller.trim() ||
+      !newProduct.location.trim()
+    ) {
+      setFormError("Please complete the required fields.");
+      return;
+    }
+
+    if (!Number.isFinite(price) || price <= 0) {
+      setFormError("Please enter a price greater than zero.");
+      return;
+    }
+
+    const product = {
+      ...newProduct,
+      id: `local-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}`,
+      name: newProduct.name.trim(),
+      seller: newProduct.seller.trim(),
+      location: newProduct.location.trim(),
+      description:
+        newProduct.description.trim() ||
+        "No description provided for this demonstration listing.",
+      price,
+      image: "",
+    };
+
+    setProducts((current) => [product, ...current]);
+    setNewProduct({ ...emptyProduct });
+    clearFilters();
+
+    showNotice(
+      "Demonstration listing added",
+      "Your listing appears in this browser session only. It has not been published or saved to Supabase. Refreshing the page removes it. Photo uploads are not connected yet."
+    );
+  }
+
+  const selectedProduct = modal?.product;
+
+  const modalTitle =
+    modal?.type === "product"
+      ? selectedProduct?.name
+      : modal?.type === "seller"
+        ? "Seller information"
+        : modal?.type === "sell"
+          ? "Add a demonstration listing"
+          : modal?.type === "account"
+            ? "Your account"
+            : modal?.title || "";
+
+  return (
+    <div className="app" id="home">
+      <header className="header">
+        <div className="nav-container">
+          <a
+            className="brand"
+            href="#home"
+            aria-label="SafeTrade SA home"
+          >
+            <span className="brand-icon">
+              <ShieldCheck size={23} />
+            </span>
+            <span>
+              SafeTrade<span className="brand-sa"> SA</span>
+            </span>
+          </a>
+
+          <nav
+            id="main-navigation"
+            className={`nav-links${menuOpen ? " open" : ""}`}
+            aria-label="Main navigation"
+          >
+            <a href="#marketplace" onClick={() => setMenuOpen(false)}>
+              Marketplace
+            </a>
+            <a href="#how-it-works" onClick={() => setMenuOpen(false)}>
+              How it works
+            </a>
+            <a href="#safety" onClick={() => setMenuOpen(false)}>
+              Safety centre
+            </a>
+
+            <button
+              className="outline-button"
+              disabled={authLoading}
+              onClick={() => {
+                if (user) {
+                  setMenuOpen(false);
+                  setModal({ type: "account" });
+                } else {
+                  openAuth();
+                }
+              }}
+            >
+              <UserRound size={17} />
+              {authLoading
+                ? "Checking login…"
+                : user
+                  ? "My account"
+                  : "Login / Register"}
+            </button>
+          </nav>
+
+          <div className="nav-actions">
+            <button
+              className="saved-nav"
+              aria-pressed={savedOnly}
+              onClick={() => {
+                setSavedOnly((current) => !current);
+                scrollToMarketplace();
+              }}
+            >
+              <Heart size={17} />
+              Saved ({saved.length})
+            </button>
+
+            <button className="sell-button" onClick={openSellForm}>
+              <Plus size={17} /> Sell
+            </button>
+
+            <button
+              className="menu-button"
+              aria-label={menuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={menuOpen}
+              aria-controls="main-navigation"
+              onClick={() => setMenuOpen((current) => !current)}
+            >
+              {menuOpen ? <X /> : <Menu />}
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {authError && (
+        <div
+          role="alert"
+          style={{
+            background: "#fff3f3",
+            color: "#9b3030",
+            padding: "12px 20px",
+            textAlign: "left",
+          }}
+        >
+          Login connection: {authError}
+        </div>
+      )}
+
+      <main>
+        <section className="hero">
+          <div className="hero-content" style={{ textAlign: "left" }}>
+            <span className="eyebrow">
+              <ShieldCheck size={15} />
+              SOUTH AFRICAN MARKETPLACE CONCEPT
+            </span>
+
+            <h1>
+              Find something great.
+              <br />
+              <span>Trade more carefully.</span>
+            </h1>
+
+            <p>
+              Explore a marketplace concept for buying and selling
+              across South Africa. Product listings are demonstrations,
+              not live advertisements.
+            </p>
+
+            <form
+              className="hero-search"
+              onSubmit={(event) => {
+                event.preventDefault();
+                scrollToMarketplace();
+              }}
+            >
+              <Search size={20} />
+              <input
+                aria-label="Search marketplace"
+                placeholder="What are you looking for?"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
+              <button type="submit">Search</button>
+            </form>
+
+            <div className="hero-trust">
+              <span>
+                <Search size={15} /> Browse listings
+              </span>
+              <span>
+                <Heart size={15} /> Save favourites
+              </span>
+              <span>
+                <ShieldCheck size={15} /> Stay alert
+              </span>
+            </div>
+          </div>
+
+          <div className="hero-visual">
+            <div
+              className="hero-image-card"
+              style={{
+                background: "linear-gradient(135deg, #eaf6ef, #badfc9)",
+              }}
+            >
+              <img
+                src="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1000&q=80"
+                alt="Sample sofa in a living room"
+              />
+
+              <div className="hero-floating-card">
+                <div className="floating-icon">
+                  <ShieldCheck size={26} />
+                </div>
+                <div>
+                  <strong>Take time to check</strong>
+                  <small>No trade is guaranteed safe.</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div className="trust-strip">
+          <div>
+            <Search />
+            <span>
+              <strong>Explore categories</strong>
+              <small>Find something useful</small>
+            </span>
+          </div>
+          <div>
+            <MapPin />
+            <span>
+              <strong>Browse locations</strong>
+              <small>Search by city or town</small>
+            </span>
+          </div>
+          <div>
+            <Heart />
+            <span>
+              <strong>Save favourites</strong>
+              <small>For this page session only</small>
+            </span>
+          </div>
+          <div>
+            <ShieldCheck />
+            <span>
+              <strong>Demo marketplace</strong>
+              <small>No payments or trade guarantees</small>
+            </span>
+          </div>
+        </div>
+
+        <section
+          className="market-section"
+          id="marketplace"
+          style={{ scrollMarginTop: "90px" }}
+        >
+          <div className="section-heading">
+            <div style={{ textAlign: "left" }}>
+              <span className="eyebrow">EXPLORE THE MARKETPLACE</span>
+              <h2>
+                {savedOnly ? "Your saved listings" : "Discover listings"}
+              </h2>
+              <p>Browse sample items or add a demonstration listing.</p>
+            </div>
+
+            <button className="outline-button" onClick={openSellForm}>
+              <Plus size={17} /> Post a listing
+            </button>
+          </div>
+
+          <div className="category-list">
+            {categories.map((item) => (
+              <button
+                key={item}
+                className={`category-chip${
+                  category === item ? " active" : ""
+                }`}
+                aria-pressed={category === item}
+                onClick={() => setCategory(item)}
+              >
+                {item}
+              </button>
+            ))}
+
+            <button
+              className={`category-chip${savedOnly ? " active" : ""}`}
+              aria-pressed={savedOnly}
+              onClick={() => setSavedOnly((current) => !current)}
+            >
+              Saved ({saved.length})
+            </button>
+          </div>
+
+          <div className="market-toolbar">
+            <span className="result-count" aria-live="polite">
+              {filteredProducts.length} listing
+              {filteredProducts.length === 1 ? "" : "s"} found
+            </span>
+
+            <div className="market-search">
+              <Search size={17} />
+              <input
+                aria-label="Filter listings"
+                placeholder="Search items, categories or locations"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
+
+              {search && (
+                <button
+                  aria-label="Clear search"
+                  onClick={() => setSearch("")}
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {filteredProducts.length === 0 ? (
+            <div className="empty-state">
+              <ShoppingBag size={38} />
+              <h3>No listings found</h3>
+              <p>
+                Try another search or save an item using its heart button.
+              </p>
+              <button className="sell-button" onClick={clearFilters}>
+                Clear filters
+              </button>
+            </div>
+          ) : (
+            <div className="product-grid">
+              {filteredProducts.map((item) => (
+                <article className="product-card" key={item.id}>
+                  <div className="product-photo">
+                    <button
+                      aria-label={`View ${item.name}`}
+                      onClick={() =>
+                        setModal({ type: "product", product: item })
+                      }
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        border: 0,
+                        padding: 0,
+                        background: "transparent",
+                      }}
+                    >
+                      <ProductImage product={item} />
+                    </button>
+
+                    <span className="condition-label">Demo listing</span>
+
+                    <button
+                      className={`heart-button${
+                        saved.includes(item.id) ? " saved" : ""
+                      }`}
+                      onClick={() => toggleSaved(item.id)}
+                      aria-label={
+                        saved.includes(item.id)
+                          ? `Unsave ${item.name}`
+                          : `Save ${item.name}`
+                      }
+                      aria-pressed={saved.includes(item.id)}
+                    >
+                      <Heart
+                        size={19}
+                        fill={
+                          saved.includes(item.id) ? "currentColor" : "none"
+                        }
+                      />
+                    </button>
+                  </div>
+
+                  <div className="product-info" style={{ textAlign: "left" }}>
+                    <div className="product-category">{item.category}</div>
+                    <h3>{item.name}</h3>
+                    <div className="product-price">
+                      {formatPrice(item.price)}
+                    </div>
+                    <div className="product-location">
+                      <MapPin size={14} /> {item.location}
+                    </div>
+
+                    <div className="seller-line">
+                      <button
+                        className="seller-link"
+                        onClick={() =>
+                          setModal({ type: "seller", product: item })
+                        }
+                      >
+                        <UserRound size={15} /> {item.seller}
+                      </button>
+                      <span className="verified-tag">Demo only</span>
+                    </div>
+
+                    <button
+                      className="details-button"
+                      onClick={() =>
+                        setModal({ type: "product", product: item })
+                      }
+                    >
+                      View details <ChevronRight size={17} />
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+
+          <p className="sample-notice">
+            Demonstration only. Photos are illustrative and may not show
+            the exact products described. Products, prices and seller
+            details are not verified live advertisements. Added listings
+            and favourites disappear when you refresh. They are not saved
+            to your account.
+          </p>
+        </section>
+
+        <section
+          className="how-section"
+          id="how-it-works"
+          style={{ scrollMarginTop: "90px" }}
+        >
+          <div className="section-heading centered">
+            <span className="eyebrow">SIMPLE AND STRAIGHTFORWARD</span>
+            <h2>How SafeTrade works</h2>
+            <p>
+              Explore the concept. Marketplace features are still in
+              development.
+            </p>
+          </div>
+
+          <div className="steps-grid">
+            {steps.map(({ title, text, Icon }, index) => (
+              <div className="step-card" key={title}>
+                <span className="step-number">0{index + 1}</span>
+                <Icon size={28} />
+                <h3>{title}</h3>
+                <p>{text}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section
+          className="safety-section"
+          id="safety"
+          style={{ scrollMarginTop: "90px" }}
+        >
+          <div className="safety-content" style={{ textAlign: "left" }}>
+            <span className="eyebrow">YOUR SAFETY MATTERS</span>
+            <h2>Trade with your eyes open.</h2>
+            <p>
+              This prototype does not verify sellers, inspect products,
+              hold payments, or guarantee transactions.
+            </p>
+
+            <ul>
+              <li>
+                <CheckCircle size={18} />
+                Sample seller profiles are not identity checks.
+              </li>
+              <li>
+                <CheckCircle size={18} />
+                Demo prices are not offers from actual sellers.
+              </li>
+              <li>
+                <CheckCircle size={18} />
+                Messaging and reporting are not connected yet.
+              </li>
+              <li>
+                <CheckCircle size={18} />
+                Do not use this demo to arrange real payments.
+              </li>
+            </ul>
+          </div>
+
+          <div className="safety-art" aria-hidden="true">
+            <ShieldCheck size={100} strokeWidth={1.4} />
+          </div>
+        </section>
+      </main>
+
+      <footer className="footer">
+        <a className="brand footer-brand" href="#home">
+          <span className="brand-icon">
+            <ShieldCheck size={23} />
+          </span>
+          <span>
+            SafeTrade<span className="brand-sa"> SA</span>
+          </span>
+        </a>
+
+        <p>
+          A South African marketplace concept. Product listings are
+          demonstrations.
+        </p>
+
+        <div className="footer-links">
+          <a href="#marketplace">Marketplace</a>
+          <a href="#how-it-works">How it works</a>
+          <a href="#safety">Safety centre</a>
+        </div>
+
+        <small>
+          © {new Date().getFullYear()} SafeTrade SA. Marketplace
+          demonstration.
+        </small>
+      </footer>
+
+      {showAuth && (
+        <div
+          ref={dialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Log in or create an account"
+        >
+          <Auth onClose={() => setShowAuth(false)} />
+        </div>
+      )}
+
+      {modal && (
+        <div
+          className="modal-backdrop"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) {
+              closeModal();
+            }
+          }}
+        >
+          <div
+            ref={dialogRef}
+            className={`modal${
+              modal.type === "sell"
+                ? " form-modal"
+                : modal.type !== "product"
+                  ? " small-modal"
+                  : ""
+            }`}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modal-title"
+            style={{ textAlign: "left" }}
+          >
+            <button
+              ref={closeButtonRef}
+              type="button"
+              className="modal-close"
+              onClick={closeModal}
+              aria-label="Close window"
+            >
+              <X size={18} />
+            </button>
+
+            {modal.type === "product" && selectedProduct && (
+              <div className="detail-layout">
+                <div className="detail-image">
+                  <ProductImage product={selectedProduct} />
+                </div>
+
+                <div className="detail-content">
+                  <div className="product-category">
+                    {selectedProduct.category}
+                  </div>
+                  <h2 id="modal-title">{modalTitle}</h2>
+                  <div className="detail-price">
+                    {formatPrice(selectedProduct.price)}
+                  </div>
+                  <p className="product-location">
+                    <MapPin size={15} />
+                    {selectedProduct.location}
+                  </p>
+                  <p>{selectedProduct.description}</p>
+
+                  <div className="detail-seller">
+                    <div className="seller-avatar">
+                      <UserRound size={20} />
+                    </div>
+                    <div>
+                      <strong>{selectedProduct.seller}</strong>
+                      <small>Identity not verified</small>
+                    </div>
+                  </div>
+
+                  <button
+                    className="primary-wide"
+                    onClick={() =>
+                      showNotice(
+                        "Messaging is not connected",
+                        "No message has been sent. This demonstration does not connect you to a seller."
+                      )
+                    }
+                  >
+                    <MessageCircle size={17} />
+                    Contact seller — demo
+                  </button>
+
+                  <button
+                    className="secondary-wide"
+                    onClick={() => toggleSaved(selectedProduct.id)}
+                    aria-pressed={saved.includes(selectedProduct.id)}
+                  >
+                    <Heart
+                      size={17}
+                      fill={
+                        saved.includes(selectedProduct.id)
+                          ? "currentColor"
+                          : "none"
+                      }
+                    />
+                    {saved.includes(selectedProduct.id)
+                      ? "Remove from saved"
+                      : "Save listing"}
+                  </button>
+
+                  <button
+                    className="report-link"
+                    onClick={() =>
+                      showNotice(
+                        "Reporting is not connected",
+                        "No report has been submitted. This button is a placeholder for a future reporting feature."
+                      )
+                    }
+                  >
+                    <Flag size={14} /> Report listing — demo
+                  </button>
+
+                  <p className="modal-disclaimer">
+                    Demonstration listing only. Photos are illustrative.
+                    No seller verification, payment protection, or
+                    fulfilment is provided.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {modal.type === "seller" && selectedProduct && (
+              <>
+                <div className="seller-profile-icon">
+                  <UserRound size={35} />
+                </div>
+                <h2 id="modal-title">{modalTitle}</h2>
+                <p><strong>{selectedProduct.seller}</strong></p>
+                <p className="product-location">
+                  <MapPin size={15} />
+                  {selectedProduct.location}
+                </p>
+                <div className="profile-status">
+                  <UserRound size={18} />
+                  Demonstration profile — identity not verified
+                </div>
+                <p className="form-intro">
+                  This listing is not linked to a verified seller account.
+                  No trading history or reviews are available.
+                </p>
+                <button
+                  className="primary-wide"
+                  onClick={() =>
+                    setModal({ type: "product", product: selectedProduct })
+                  }
+                >
+                  View listing <ChevronRight size={17} />
+                </button>
+              </>
+            )}
+
+            {modal.type === "account" && (
+              <>
+                <div className="seller-profile-icon">
+                  <UserRound size={35} />
+                </div>
+                <h2 id="modal-title">{modalTitle}</h2>
+
+                {user ? (
+                  <>
+                    <p><strong>{displayName}</strong></p>
+                    <p
+                      className="form-intro"
+                      style={{ overflowWrap: "anywhere" }}
+                    >
+                      {user.email}
+                    </p>
+                    <div className="profile-status">
+                      <UserRound size={18} />
+                      Signed in
+                    </div>
+                    <p className="modal-disclaimer">
+                      Signing in does not verify seller identity or make
+                      the demonstration listings real. Listings and
+                      favourites are not saved to your account yet.
+                    </p>
+                    <button
+                      className="primary-wide"
+                      onClick={handleSignOut}
+                      disabled={signingOut}
+                    >
+                      <LogOut size={17} />
+                      {signingOut ? "Logging out…" : "Log out"}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="form-intro">
+                      You are not currently signed in.
+                    </p>
+                    <button className="primary-wide" onClick={openAuth}>
+                      <UserRound size={17} />
+                      Login / Register
+                    </button>
+                  </>
+                )}
+              </>
+            )}
+
+            {modal.type === "sell" && (
+              <>
+                <span className="eyebrow">DEMONSTRATION ONLY</span>
+                <h2 id="modal-title">{modalTitle}</h2>
+                <p className="form-intro">
+                  Test the listing form. Your item will appear only in
+                  this page session and will disappear on refresh.
+                </p>
+
+                <form onSubmit={submitListing}>
+                  <label>
+                    Item title
+                    <input
+                      type="text"
+                      value={newProduct.name}
+                      onChange={(event) =>
+                        updateProduct("name", event.target.value)
+                      }
+                      placeholder="For example: Wooden coffee table"
+                      maxLength={100}
+                      required
+                    />
+                  </label>
+
+                  <div className="form-row">
+                    <label>
+                      Category
+                      <select
+                        value={newProduct.category}
+                        onChange={(event) =>
+                          updateProduct("category", event.target.value)
+                        }
+                      >
+                        {categories
+                          .filter((item) => item !== "All")
+                          .map((item) => (
+                            <option key={item} value={item}>
+                              {item}
+                            </option>
+                          ))}
+                      </select>
+                    </label>
+
+                    <label>
+                      Price in rand
+                      <input
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        value={newProduct.price}
+                        onChange={(event) =>
+                          updateProduct("price", event.target.value)
+                        }
+                        placeholder="500"
+                        required
+                      />
+                    </label>
+                  </div>
+
+                  <div className="form-row">
+                    <label>
+                      Display name
+                      <input
+                        type="text"
+                        value={newProduct.seller}
+                        onChange={(event) =>
+                          updateProduct("seller", event.target.value)
+                        }
+                        placeholder="Your display name"
+                        maxLength={60}
+                        required
+                      />
+                    </label>
+
+                    <label>
+                      City or town
+                      <input
+                        type="text"
+                        value={newProduct.location}
+                        onChange={(event) =>
+                          updateProduct("location", event.target.value)
+                        }
+                        placeholder="Cape Town"
+                        maxLength={80}
+                        required
+                      />
+                    </label>
+                  </div>
+
+                  <label>
+                    Description
+                    <textarea
+                      rows={4}
+                      value={newProduct.description}
+                      onChange={(event) =>
+                        updateProduct("description", event.target.value)
+                      }
+                      placeholder="Describe the item and its condition."
+                      maxLength={2000}
+                    />
+                  </label>
+
+                  <div className="form-note">
+                    <ShieldCheck size={17} />
+                    This does not publish an advertisement, upload photos,
+                    or save anything to Supabase. Do not enter private
+                    contact or payment information.
+                  </div>
+
+                  {formError && (
+                    <p
+                      role="alert"
+                      style={{ color: "#b42318", fontSize: "13px" }}
+                    >
+                      {formError}
+                    </p>
+                  )}
+
+                  <button className="primary-wide" type="submit">
+                    <Plus size={17} />
+                    Add demonstration listing
+                  </button>
+                </form>
+              </>
+            )}
+
+            {modal.type === "notice" && (
+              <>
+                <div className="seller-profile-icon">
+                  <MessageCircle size={30} />
+                </div>
+                <h2 id="modal-title">{modalTitle}</h2>
+                <p className="form-intro">{modal.text}</p>
+                <button className="primary-wide" onClick={closeModal}>
+                  Close
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default App;
