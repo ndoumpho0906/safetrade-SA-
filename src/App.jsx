@@ -17,6 +17,10 @@ import {
   LogOut,
   Pencil,
   Trash2,
+  Send,
+  Inbox,
+  Save,
+  ArrowLeft,
 } from "lucide-react";
 import Auth from "./Auth";
 import { supabase } from "./supabaseClient";
@@ -41,127 +45,13 @@ const categories = [
   "Other",
 ];
 
-const initialProducts = [
-  {
-    id: "sample-phone",
-    name: "iPhone 13 — 128GB",
-    category: "Electronics",
-    price: 6500,
-    location: "Johannesburg",
-    seller: "Demo Seller A",
-    image:
-      "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=800&q=80",
-    description:
-      "Demonstration listing for a used phone. This item is not actually offered for sale.",
-  },
-  {
-    id: "sample-sofa",
-    name: "Three-seater sofa",
-    category: "Furniture",
-    price: 3200,
-    location: "Cape Town",
-    seller: "Demo Seller B",
-    image:
-      "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=800&q=80",
-    description:
-      "Demonstration listing for a sofa. Product details and price are sample data.",
-  },
-  {
-    id: "sample-car",
-    name: "Compact city car",
-    category: "Vehicles",
-    price: 85000,
-    location: "Pretoria",
-    seller: "Demo Seller C",
-    image:
-      "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=800&q=80",
-    description:
-      "Demonstration vehicle listing. No ownership, vehicle history, or condition checks have been performed.",
-  },
-  {
-    id: "sample-shoes",
-    name: "Casual sneakers",
-    category: "Fashion",
-    price: 450,
-    location: "Durban",
-    seller: "Demo Seller D",
-    image:
-      "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80",
-    description:
-      "Demonstration listing for casual sneakers. This is not a live advertisement.",
-  },
-  {
-    id: "sample-laptop",
-    name: "Everyday laptop",
-    category: "Electronics",
-    price: 4800,
-    location: "Bloemfontein",
-    seller: "Demo Seller E",
-    image:
-      "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=800&q=80",
-    description:
-      "Sample laptop listing for testing the marketplace interface. Specifications are not verified.",
-  },
-  {
-    id: "sample-chair",
-    name: "Office chair",
-    category: "Furniture",
-    price: 950,
-    location: "Gqeberha",
-    seller: "Demo Seller F",
-    image:
-      "https://unsplash.com/photos/E4hB0LMXXc0/download?force=true",
-    description:
-      "Sample office chair listing. No actual seller or product is connected to this demonstration.",
-  },
-  {
-    id: "sample-plants",
-    name: "Indoor plant collection",
-    category: "Home & Garden",
-    price: 350,
-    location: "Stellenbosch",
-    seller: "Demo Seller G",
-    image:
-      "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?auto=format&fit=crop&w=800&q=80",
-    description:
-      "Demonstration listing for indoor plants and pots. Availability is not real.",
-  },
-  {
-    id: "sample-jacket",
-    name: "Winter jacket",
-    category: "Fashion",
-    price: 600,
-    location: "Polokwane",
-    seller: "Demo Seller H",
-    image:
-      "https://unsplash.com/photos/92_tCTr9rtw/download?force=true",
-    description:
-      "Sample winter jacket listing used to demonstrate browsing and saved items.",
-  },
-  {
-    id: "sample-playstation",
-    name: "PlayStation 5",
-    category: "Electronics",
-    price: 8500,
-    location: "Johannesburg",
-    seller: "Demo Seller I",
-    image:
-      "https://images.unsplash.com/photo-1606813907291-d86efa9b94db?auto=format&fit=crop&w=800&q=80",
-    description:
-      "Demonstration gaming console listing. The photo and price are illustrative only.",
-  },
-  {
-    id: "sample-corolla",
-    name: "Toyota Corolla",
-    category: "Vehicles",
-    price: 145000,
-    location: "Pretoria",
-    seller: "Demo Seller J",
-    image:
-      "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=800&q=80",
-    description:
-      "Demonstration vehicle listing. The photo is illustrative and may not show the exact model. This is not a real sale.",
-  },
+const reportReasons = [
+  "Suspicious listing",
+  "Potential scam",
+  "Prohibited item",
+  "Misleading information",
+  "Inappropriate content",
+  "Other",
 ];
 
 const emptyProduct = {
@@ -173,33 +63,62 @@ const emptyProduct = {
   description: "",
 };
 
+const emptyProfile = {
+  display_name: "",
+  location: "",
+  bio: "",
+  avatar_url: "",
+};
+
 const steps = [
   {
     title: "Discover",
-    text: "Search the marketplace and explore demonstration listings.",
+    text: "Browse real listings published by registered SafeTrade users.",
     Icon: Search,
   },
   {
     title: "Review the seller",
-    text: "Look at the available information before deciding to trade.",
+    text: "Read the seller's public profile and ask questions before buying.",
     Icon: UserRound,
   },
   {
     title: "Connect",
-    text: "Messaging is planned but is not connected in this version.",
+    text: "Contact sellers through private conversations on SafeTrade.",
     Icon: MessageCircle,
   },
   {
     title: "Trade carefully",
-    text: "This demonstration does not process payments or guarantee trades.",
+    text: "Meet safely, inspect items and agree on payment arrangements carefully.",
     Icon: ShieldCheck,
   },
 ];
 
 function formatPrice(value) {
   return `R ${Number(value).toLocaleString("en-ZA", {
+    minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   })}`;
+}
+
+function formatDate(value) {
+  if (!value) return "";
+
+  return new Date(value).toLocaleDateString("en-ZA", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function formatDateTime(value) {
+  if (!value) return "";
+
+  return new Date(value).toLocaleString("en-ZA", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function getProductImagePath(imageUrl) {
@@ -226,19 +145,8 @@ function ProductImage({ product }) {
 
   if (!product.image || failed) {
     return (
-      <span
-        style={{
-          display: "grid",
-          placeItems: "center",
-          width: "100%",
-          height: "100%",
-          minHeight: "145px",
-          color: "#77847d",
-          fontSize: "14px",
-          background: "#f1f5f2",
-        }}
-      >
-        Photo unavailable
+      <span className="image-placeholder">
+        <ShoppingBag size={38} />
       </span>
     );
   }
@@ -246,37 +154,38 @@ function ProductImage({ product }) {
   return (
     <img
       src={product.image}
-      alt={`Illustrative sample for ${product.name}`}
+      alt={product.name}
       loading="lazy"
       onError={() => setFailed(true)}
-      style={{
-        display: "block",
-        width: "100%",
-        height: "100%",
-        objectFit: "cover",
-      }}
     />
   );
 }
 
 function App() {
-  const [products, setProducts] = useState(initialProducts);
+  const [products, setProducts] = useState([]);
   const [productsLoading, setProductsLoading] = useState(true);
   const [productsError, setProductsError] = useState("");
-  const [listingSubmitting, setListingSubmitting] = useState(false);
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState("");
-  const [removeExistingImage, setRemoveExistingImage] = useState(false);
+
+  const [profiles, setProfiles] = useState({});
+  const [saved, setSaved] = useState([]);
+  const [savedLoading, setSavedLoading] = useState(false);
+  const [savedBusy, setSavedBusy] = useState(false);
+
+  const [conversations, setConversations] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [messageText, setMessageText] = useState("");
+  const [messagesLoading, setMessagesLoading] = useState(false);
+  const [messageSending, setMessageSending] = useState(false);
 
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
-  const [saved, setSaved] = useState([]);
   const [savedOnly, setSavedOnly] = useState(false);
   const [myListingsOnly, setMyListingsOnly] = useState(false);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [modal, setModal] = useState(null);
   const [showAuth, setShowAuth] = useState(false);
+  const [recoveryMode, setRecoveryMode] = useState(false);
 
   const [session, setSession] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -284,55 +193,279 @@ function App() {
   const [signingOut, setSigningOut] = useState(false);
 
   const [newProduct, setNewProduct] = useState({ ...emptyProduct });
+  const [listingSubmitting, setListingSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState("");
+  const [removeExistingImage, setRemoveExistingImage] = useState(false);
   const [deletingProductId, setDeletingProductId] = useState(null);
+
+  const [profileForm, setProfileForm] = useState({ ...emptyProfile });
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [reportReason, setReportReason] = useState(reportReasons[0]);
+  const [reportDetails, setReportDetails] = useState("");
+  const [reportSubmitting, setReportSubmitting] = useState(false);
 
   const dialogRef = useRef(null);
   const imageInputRef = useRef(null);
   const closeButtonRef = useRef(null);
+  const messageEndRef = useRef(null);
 
   const overlayOpen = Boolean(modal || showAuth);
   const user = session?.user;
 
+  const ownProfile = user ? profiles[user.id] : null;
+
   const displayName =
+    ownProfile?.display_name?.trim() ||
     user?.user_metadata?.full_name?.trim() ||
     user?.email?.split("@")[0] ||
-    "My account";
+    "SafeTrade seller";
 
-  const isOwnListing = (product) =>
-    Boolean(
-      user &&
-        product?.seller_id === user.id &&
-        !String(product.id).startsWith("sample-")
-    );
+  function isOwnListing(product) {
+    return Boolean(user && product?.seller_id === user.id);
+  }
 
-  const myListingsCount = products.filter(
-    (product) => isOwnListing(product)
-  ).length;
+  const myListingsCount = products.filter(isOwnListing).length;
 
-  useEffect(() => {
-    if (!selectedImage) {
-      setImagePreview("");
-      return undefined;
+  function showNotice(title, text) {
+    setShowAuth(false);
+    setModal({ type: "notice", title, text });
+  }
+
+  function closeModal() {
+    setModal(null);
+    setFormError("");
+    setReportDetails("");
+    setMessageText("");
+  }
+
+  function openAuth() {
+    setModal(null);
+    setMenuOpen(false);
+    setShowAuth(true);
+  }
+
+  function scrollToMarketplace() {
+    document.getElementById("marketplace")?.scrollIntoView({
+      behavior: "smooth",
+    });
+  }
+
+  function clearFilters() {
+    setSearch("");
+    setCategory("All");
+    setSavedOnly(false);
+    setMyListingsOnly(false);
+  }
+
+  async function loadProducts() {
+    setProductsLoading(true);
+    setProductsError("");
+
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error loading products:", error.message);
+      setProductsError(error.message);
+      setProductsLoading(false);
+      return;
     }
 
-    const previewUrl = URL.createObjectURL(selectedImage);
-    setImagePreview(previewUrl);
+    const loadedProducts = (data ?? []).map((product) => ({
+      ...product,
+      price: Number(product.price),
+      image: product.image || "",
+    }));
 
-    return () => URL.revokeObjectURL(previewUrl);
-  }, [selectedImage]);
+    setProducts(loadedProducts);
+    setProductsLoading(false);
+
+    const sellerIds = [
+      ...new Set(
+        loadedProducts
+          .map((product) => product.seller_id)
+          .filter(Boolean)
+      ),
+    ];
+
+    if (sellerIds.length > 0) {
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("user_id, display_name, location, bio, avatar_url")
+        .in("user_id", sellerIds);
+
+      if (!profileError) {
+        setProfiles((current) => {
+          const next = { ...current };
+
+          for (const profile of profileData ?? []) {
+            next[profile.user_id] = profile;
+          }
+
+          return next;
+        });
+      }
+    }
+  }
+
+  async function loadSavedProducts() {
+    if (!user) {
+      setSaved([]);
+      return;
+    }
+
+    setSavedLoading(true);
+
+    const { data, error } = await supabase
+      .from("saved_products")
+      .select("product_id")
+      .eq("user_id", user.id);
+
+    if (error) {
+      console.error("Could not load saved products:", error.message);
+      showNotice(
+        "Could not load favourites",
+        "Your saved listings could not be loaded. Please try again."
+      );
+    } else {
+      setSaved((data ?? []).map((item) => item.product_id));
+    }
+
+    setSavedLoading(false);
+  }
+
+  async function loadConversations() {
+    if (!user) {
+      setConversations([]);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("conversations")
+      .select("id, product_id, buyer_id, seller_id, created_at")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Could not load conversations:", error.message);
+      showNotice(
+        "Could not load messages",
+        "Your conversations could not be loaded. Please try again."
+      );
+      return;
+    }
+
+    const conversationRows = data ?? [];
+    const productIds = [
+      ...new Set(conversationRows.map((item) => item.product_id)),
+    ];
+    const participantIds = [
+      ...new Set(
+        conversationRows.flatMap((item) => [
+          item.buyer_id,
+          item.seller_id,
+        ])
+      ),
+    ];
+
+    const [productResult, profileResult] = await Promise.all([
+      productIds.length
+        ? supabase
+            .from("products")
+            .select("id, name, image, price")
+            .in("id", productIds)
+        : Promise.resolve({ data: [], error: null }),
+      participantIds.length
+        ? supabase
+            .from("profiles")
+            .select("user_id, display_name")
+            .in("user_id", participantIds)
+        : Promise.resolve({ data: [], error: null }),
+    ]);
+
+    const productMap = Object.fromEntries(
+      (productResult.data ?? []).map((item) => [item.id, item])
+    );
+
+    const profileMap = Object.fromEntries(
+      (profileResult.data ?? []).map((item) => [
+        item.user_id,
+        item,
+      ])
+    );
+
+    setConversations(
+      conversationRows.map((conversation) => ({
+        ...conversation,
+        product: productMap[conversation.product_id] || null,
+        buyer: profileMap[conversation.buyer_id] || null,
+        seller: profileMap[conversation.seller_id] || null,
+        otherUserId:
+          conversation.buyer_id === user.id
+            ? conversation.seller_id
+            : conversation.buyer_id,
+        otherUserName:
+          conversation.buyer_id === user.id
+            ? profileMap[conversation.seller_id]?.display_name ||
+              "Seller"
+            : profileMap[conversation.buyer_id]?.display_name ||
+              "Buyer",
+      }))
+    );
+  }
+
+  async function loadMessages(conversationId) {
+    if (!conversationId) return;
+
+    setMessagesLoading(true);
+
+    const { data, error } = await supabase
+      .from("messages")
+      .select("id, conversation_id, sender_id, body, created_at")
+      .eq("conversation_id", conversationId)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      console.error("Could not load messages:", error.message);
+      showNotice(
+        "Could not load messages",
+        "The conversation could not be loaded. Please try again."
+      );
+    } else {
+      setMessages(data ?? []);
+    }
+
+    setMessagesLoading(false);
+  }
 
   useEffect(() => {
     let active = true;
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (!active) return;
 
       setSession(nextSession);
       setAuthLoading(false);
       setAuthError("");
+
+      if (event === "PASSWORD_RECOVERY") {
+        setRecoveryMode(true);
+        setShowAuth(true);
+        setModal(null);
+      }
+
+      if (event === "SIGNED_OUT") {
+        setSaved([]);
+        setConversations([]);
+        setMessages([]);
+        setSavedOnly(false);
+        setMyListingsOnly(false);
+      }
     });
 
     supabase.auth
@@ -361,40 +494,96 @@ function App() {
   }, []);
 
   useEffect(() => {
-    let active = true;
+    loadProducts();
+  }, []);
 
-    async function loadProducts() {
+  useEffect(() => {
+    if (!user) {
+      setSaved([]);
+      return;
+    }
+
+    loadSavedProducts();
+
+    const loadOwnProfile = async () => {
       const { data, error } = await supabase
-        .from("products")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (!active) return;
+        .from("profiles")
+        .select("user_id, display_name, location, bio, avatar_url")
+        .eq("user_id", user.id)
+        .maybeSingle();
 
       if (error) {
-        console.error("Error loading products:", error.message);
-        setProductsError(error.message);
-        setProductsLoading(false);
+        console.error("Could not load profile:", error.message);
         return;
       }
 
-      const databaseProducts = (data ?? []).map((product) => ({
-        ...product,
-        price: Number(product.price),
-        image: product.image || "",
-      }));
+      if (data) {
+        setProfiles((current) => ({
+          ...current,
+          [user.id]: data,
+        }));
+      }
+    };
 
-      setProducts([...databaseProducts, ...initialProducts]);
-      setProductsError("");
-      setProductsLoading(false);
+    loadOwnProfile();
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (modal?.type !== "conversation" || !modal.conversationId) {
+      return undefined;
     }
 
-    loadProducts();
+    const conversationId = modal.conversationId;
+
+    loadMessages(conversationId);
+
+    const channel = supabase
+      .channel(`messages-${conversationId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        (payload) => {
+          setMessages((current) => {
+            if (current.some((item) => item.id === payload.new.id)) {
+              return current;
+            }
+
+            return [...current, payload.new];
+          });
+        }
+      )
+      .subscribe();
 
     return () => {
-      active = false;
+      supabase.removeChannel(channel);
     };
-  }, []);
+  }, [modal?.type, modal?.conversationId]);
+
+  useEffect(() => {
+    if (modal?.type !== "conversation") return;
+
+    messageEndRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "end",
+    });
+  }, [messages, modal?.type]);
+
+  useEffect(() => {
+    if (!selectedImage) {
+      setImagePreview("");
+      return undefined;
+    }
+
+    const previewUrl = URL.createObjectURL(selectedImage);
+    setImagePreview(previewUrl);
+
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [selectedImage]);
 
   useEffect(() => {
     if (!overlayOpen) return undefined;
@@ -416,6 +605,7 @@ function App() {
       if (event.key === "Escape") {
         setModal(null);
         setShowAuth(false);
+        setRecoveryMode(false);
         setFormError("");
         return;
       }
@@ -428,7 +618,7 @@ function App() {
         ) ?? []
       ).filter((element) => element.getClientRects().length > 0);
 
-      if (controls.length === 0) return;
+      if (!controls.length) return;
 
       const first = controls[0];
       const last = controls[controls.length - 1];
@@ -469,6 +659,7 @@ function App() {
       product.location,
       product.category,
       product.description,
+      product.seller,
     ]
       .join(" ")
       .toLowerCase()
@@ -481,47 +672,6 @@ function App() {
       (!myListingsOnly || isOwnListing(product))
     );
   });
-
-  function closeModal() {
-    setModal(null);
-    setFormError("");
-  }
-
-  function showNotice(title, text) {
-    setShowAuth(false);
-    setModal({ type: "notice", title, text });
-  }
-
-  function openAuth() {
-    setModal(null);
-    setMenuOpen(false);
-    setShowAuth(true);
-  }
-
-  // Login is required before a user can save or remove a favourite.
-  function toggleSaved(id) {
-    if (!user) {
-      openAuth();
-      return;
-    }
-
-    setSaved((current) =>
-      current.includes(id)
-        ? current.filter((item) => item !== id)
-        : [...current, id]
-    );
-  }
-
-  function clearFilters() {
-    setSearch("");
-    setCategory("All");
-    setSavedOnly(false);
-    setMyListingsOnly(false);
-  }
-
-  function scrollToMarketplace() {
-    document.getElementById("marketplace")?.scrollIntoView();
-  }
 
   function openSellForm() {
     setMenuOpen(false);
@@ -539,6 +689,7 @@ function App() {
     setNewProduct({
       ...emptyProduct,
       seller: displayName,
+      location: ownProfile?.location || "",
     });
 
     setModal({ type: "sell" });
@@ -611,27 +762,56 @@ function App() {
     if (imageInputRef.current) imageInputRef.current.value = "";
   }
 
-  async function handleSignOut() {
-    setSigningOut(true);
+  async function toggleSaved(productId) {
+    if (!user) {
+      openAuth();
+      return;
+    }
+
+    if (savedBusy) return;
+
+    setSavedBusy(true);
+
+    const alreadySaved = saved.includes(productId);
 
     try {
-      const { error } = await supabase.auth.signOut({
-        scope: "local",
-      });
+      if (alreadySaved) {
+        const { error } = await supabase
+          .from("saved_products")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("product_id", productId);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      setSession(null);
-      setMyListingsOnly(false);
-      setModal(null);
-      setMenuOpen(false);
+        setSaved((current) =>
+          current.filter((id) => id !== productId)
+        );
+      } else {
+        const { error } = await supabase
+          .from("saved_products")
+          .insert({
+            user_id: user.id,
+            product_id: productId,
+          });
+
+        if (error) throw error;
+
+        setSaved((current) =>
+          current.includes(productId)
+            ? current
+            : [...current, productId]
+        );
+      }
     } catch (error) {
+      console.error("Could not update favourite:", error);
+
       showNotice(
-        "Could not log out",
+        "Could not update favourites",
         error.message || "Please try again."
       );
     } finally {
-      setSigningOut(false);
+      setSavedBusy(false);
     }
   }
 
@@ -754,10 +934,7 @@ function App() {
       }
 
       if (error) throw error;
-
-      if (!data) {
-        throw new Error("The listing could not be saved.");
-      }
+      if (!data) throw new Error("The listing could not be saved.");
 
       const savedProduct = {
         ...data,
@@ -765,18 +942,16 @@ function App() {
         image: data.image || "",
       };
 
-      if (isEditing) {
-        setProducts((current) =>
-          current.map((item) =>
-            item.id === savedProduct.id ? savedProduct : item
-          )
-        );
-      } else {
-        setProducts((current) => [
-          savedProduct,
-          ...current.filter((item) => item.id !== savedProduct.id),
-        ]);
-      }
+      setProducts((current) =>
+        isEditing
+          ? current.map((item) =>
+              item.id === savedProduct.id ? savedProduct : item
+            )
+          : [
+              savedProduct,
+              ...current.filter((item) => item.id !== savedProduct.id),
+            ]
+      );
 
       if (isEditing && (selectedImage || removeExistingImage)) {
         const oldImagePath = getProductImagePath(existingProduct.image);
@@ -808,7 +983,7 @@ function App() {
         isEditing ? "Listing updated" : "Listing published",
         isEditing
           ? "Your listing has been updated successfully."
-          : "Your listing has been saved to SafeTrade and is now visible in the marketplace."
+          : "Your listing has been published and is visible in the marketplace."
       );
     } catch (error) {
       if (uploadedImagePath) {
@@ -817,10 +992,7 @@ function App() {
             .from("product-images")
             .remove([uploadedImagePath]);
         } catch (cleanupError) {
-          console.warn(
-            "Could not remove the uploaded photo after the listing failed:",
-            cleanupError
-          );
+          console.warn("Could not clean up the uploaded photo:", cleanupError);
         }
       }
 
@@ -864,7 +1036,7 @@ function App() {
 
       if (!data) {
         throw new Error(
-          "The listing was not deleted. Please check that you own this listing."
+          "The listing was not deleted. Please check that you own it."
         );
       }
 
@@ -876,17 +1048,11 @@ function App() {
         current.filter((item) => item !== product.id)
       );
 
-      if (
-        (modal?.type === "product" ||
-          modal?.type === "edit") &&
-        modal.product?.id === product.id
-      ) {
+      if (modal?.product?.id === product.id) {
         setModal(null);
       }
 
       const imagePath = getProductImagePath(product.image);
-
-      let photoWarning = "";
 
       if (imagePath) {
         const { error: imageError } = await supabase.storage
@@ -894,19 +1060,13 @@ function App() {
           .remove([imagePath]);
 
         if (imageError) {
-          console.warn(
-            "Listing deleted, but photo removal failed:",
-            imageError.message
-          );
-
-          photoWarning =
-            " The listing was deleted, but its photo could not be removed automatically.";
+          console.warn("Listing deleted, but photo removal failed:", imageError);
         }
       }
 
       showNotice(
         "Listing deleted",
-        `Your listing has been deleted successfully.${photoWarning}`
+        "Your listing has been deleted successfully."
       );
     } catch (error) {
       console.error("Error deleting listing:", error);
@@ -920,20 +1080,336 @@ function App() {
     }
   }
 
+  async function openSellerProfile(product) {
+    const profile = profiles[product.seller_id];
+
+    setModal({
+      type: "seller",
+      product,
+      profile: profile || null,
+      loading: !profile,
+    });
+
+    if (!profile && product.seller_id) {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id, display_name, location, bio, avatar_url, created_at")
+        .eq("user_id", product.seller_id)
+        .maybeSingle();
+
+      if (!error && data) {
+        setProfiles((current) => ({
+          ...current,
+          [data.user_id]: data,
+        }));
+
+        setModal((current) =>
+          current?.type === "seller" &&
+          current.product?.id === product.id
+            ? { ...current, profile: data, loading: false }
+            : current
+        );
+      } else {
+        setModal((current) =>
+          current?.type === "seller" &&
+          current.product?.id === product.id
+            ? { ...current, loading: false }
+            : current
+        );
+      }
+    }
+  }
+
+  function openProfileEditor() {
+    if (!user) {
+      openAuth();
+      return;
+    }
+
+    setProfileForm({
+      display_name: ownProfile?.display_name || displayName,
+      location: ownProfile?.location || "",
+      bio: ownProfile?.bio || "",
+      avatar_url: ownProfile?.avatar_url || "",
+    });
+
+    setFormError("");
+    setModal({ type: "profile-edit" });
+  }
+
+  async function saveProfile(event) {
+    event.preventDefault();
+
+    if (!user) return;
+
+    const display_name = profileForm.display_name.trim();
+    const location = profileForm.location.trim();
+    const bio = profileForm.bio.trim();
+    const avatar_url = profileForm.avatar_url.trim();
+
+    if (!display_name) {
+      setFormError("Please enter a display name.");
+      return;
+    }
+
+    setProfileSaving(true);
+    setFormError("");
+
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .update({
+          display_name,
+          location: location || null,
+          bio: bio || null,
+          avatar_url: avatar_url || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("user_id", user.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setProfiles((current) => ({
+        ...current,
+        [user.id]: data,
+      }));
+
+      setModal(null);
+
+      showNotice(
+        "Profile updated",
+        "Your public seller profile has been updated successfully."
+      );
+    } catch (error) {
+      console.error("Could not save profile:", error);
+
+      setFormError(
+        error.message || "Your profile could not be updated."
+      );
+    } finally {
+      setProfileSaving(false);
+    }
+  }
+
+  async function startConversation(product) {
+    if (!user) {
+      openAuth();
+      return;
+    }
+
+    if (isOwnListing(product)) {
+      showNotice(
+        "Your own listing",
+        "You cannot start a buyer conversation with yourself."
+      );
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.rpc(
+        "start_product_conversation",
+        {
+          p_product_id: product.id,
+        }
+      );
+
+      if (error) throw error;
+
+      if (!data) {
+        throw new Error("A conversation could not be created.");
+      }
+
+      setMessages([]);
+      setMessageText("");
+      setModal({
+        type: "conversation",
+        conversationId: data,
+        product,
+      });
+
+      loadConversations();
+    } catch (error) {
+      console.error("Could not start conversation:", error);
+
+      showNotice(
+        "Could not contact seller",
+        error.message || "Please try again."
+      );
+    }
+  }
+
+  async function openInbox() {
+    if (!user) {
+      openAuth();
+      return;
+    }
+
+    setModal({ type: "inbox", loading: true });
+    await loadConversations();
+    setModal((current) =>
+      current?.type === "inbox"
+        ? { ...current, loading: false }
+        : current
+    );
+  }
+
+  function openConversation(conversation) {
+    setMessages([]);
+    setMessageText("");
+
+    setModal({
+      type: "conversation",
+      conversationId: conversation.id,
+      product: conversation.product,
+      otherUserName: conversation.otherUserName,
+    });
+  }
+
+  async function sendMessage(event) {
+    event.preventDefault();
+
+    if (!user || !modal?.conversationId) return;
+
+    const body = messageText.trim();
+
+    if (!body) return;
+
+    if (body.length > 5000) {
+      showNotice(
+        "Message too long",
+        "Messages must contain 5,000 characters or fewer."
+      );
+      return;
+    }
+
+    setMessageSending(true);
+
+    try {
+      const { data, error } = await supabase
+        .from("messages")
+        .insert({
+          conversation_id: modal.conversationId,
+          sender_id: user.id,
+          body,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setMessages((current) =>
+        current.some((item) => item.id === data.id)
+          ? current
+          : [...current, data]
+      );
+
+      setMessageText("");
+    } catch (error) {
+      console.error("Could not send message:", error);
+
+      showNotice(
+        "Message not sent",
+        error.message || "Please try again."
+      );
+    } finally {
+      setMessageSending(false);
+    }
+  }
+
+  async function submitReport(event) {
+    event.preventDefault();
+
+    if (!user) {
+      openAuth();
+      return;
+    }
+
+    if (!modal?.product?.id) return;
+
+    setReportSubmitting(true);
+    setFormError("");
+
+    try {
+      const { error } = await supabase.from("reports").insert({
+        product_id: modal.product.id,
+        reporter_id: user.id,
+        reason: reportReason,
+        details: reportDetails.trim() || null,
+      });
+
+      if (error) throw error;
+
+      setModal(null);
+      setReportDetails("");
+
+      showNotice(
+        "Report submitted",
+        "Thank you. Your report has been recorded. This does not mean the listing has already been reviewed or removed."
+      );
+    } catch (error) {
+      console.error("Could not submit report:", error);
+
+      setFormError(
+        error.message || "Your report could not be submitted."
+      );
+    } finally {
+      setReportSubmitting(false);
+    }
+  }
+
+  async function handleSignOut() {
+    setSigningOut(true);
+
+    try {
+      const { error } = await supabase.auth.signOut({
+        scope: "local",
+      });
+
+      if (error) throw error;
+
+      setSession(null);
+      setModal(null);
+      setShowAuth(false);
+      setSaved([]);
+      setConversations([]);
+      setMessages([]);
+      setSavedOnly(false);
+      setMyListingsOnly(false);
+      setMenuOpen(false);
+    } catch (error) {
+      showNotice(
+        "Could not log out",
+        error.message || "Please try again."
+      );
+    } finally {
+      setSigningOut(false);
+    }
+  }
+
   const selectedProduct = modal?.product;
 
   const modalTitle =
     modal?.type === "product"
       ? selectedProduct?.name
       : modal?.type === "seller"
-        ? "Seller information"
+        ? "Seller profile"
         : modal?.type === "sell"
           ? "Post a listing"
           : modal?.type === "edit"
             ? "Edit your listing"
             : modal?.type === "account"
               ? "Your account"
-              : modal?.title || "";
+              : modal?.type === "profile-edit"
+                ? "Edit your profile"
+                : modal?.type === "inbox"
+                  ? "Your messages"
+                  : modal?.type === "conversation"
+                    ? "Conversation"
+                    : modal?.type === "report"
+                      ? "Report listing"
+                      : modal?.title || "";
 
   return (
     <div className="app" id="home">
@@ -991,6 +1467,17 @@ function App() {
           </nav>
 
           <div className="nav-actions">
+            {user && (
+              <button
+                className="saved-nav"
+                onClick={openInbox}
+                aria-label="Open messages"
+              >
+                <MessageCircle size={17} />
+                Messages
+              </button>
+            )}
+
             <button
               className="saved-nav"
               aria-pressed={savedOnly}
@@ -1027,15 +1514,7 @@ function App() {
       </header>
 
       {authError && (
-        <div
-          role="alert"
-          style={{
-            background: "#fff3f3",
-            color: "#9b3030",
-            padding: "12px 20px",
-            textAlign: "left",
-          }}
-        >
+        <div role="alert" className="app-alert">
           Login connection: {authError}
         </div>
       )}
@@ -1045,7 +1524,7 @@ function App() {
           <div className="hero-content" style={{ textAlign: "left" }}>
             <span className="eyebrow">
               <ShieldCheck size={15} />
-              SOUTH AFRICAN MARKETPLACE CONCEPT
+              SOUTH AFRICAN ONLINE MARKETPLACE
             </span>
 
             <h1>
@@ -1055,9 +1534,9 @@ function App() {
             </h1>
 
             <p>
-              Explore a marketplace concept for buying and selling
-              across South Africa. Product listings are demonstrations,
-              not live advertisements.
+              Discover products listed by sellers across South Africa.
+              Connect with sellers, save your favourites and make
+              informed decisions before trading.
             </p>
 
             <form
@@ -1081,13 +1560,13 @@ function App() {
 
             <div className="hero-trust">
               <span>
-                <Search size={15} /> Browse listings
+                <Search size={15} /> Browse products
               </span>
               <span>
                 <Heart size={15} /> Save favourites
               </span>
               <span>
-                <ShieldCheck size={15} /> Stay alert
+                <MessageCircle size={15} /> Contact sellers
               </span>
             </div>
           </div>
@@ -1101,7 +1580,7 @@ function App() {
             >
               <img
                 src="https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=1000&q=80"
-                alt="Sample sofa in a living room"
+                alt="Furniture in a living room"
               />
 
               <div className="hero-floating-card">
@@ -1109,8 +1588,8 @@ function App() {
                   <ShieldCheck size={26} />
                 </div>
                 <div>
-                  <strong>Take time to check</strong>
-                  <small>No trade is guaranteed safe.</small>
+                  <strong>Make informed decisions</strong>
+                  <small>Always check before you trade.</small>
                 </div>
               </div>
             </div>
@@ -1122,7 +1601,7 @@ function App() {
             <Search />
             <span>
               <strong>Explore categories</strong>
-              <small>Find something useful</small>
+              <small>Find products you need</small>
             </span>
           </div>
 
@@ -1138,15 +1617,15 @@ function App() {
             <Heart />
             <span>
               <strong>Save favourites</strong>
-              <small>For this page session only</small>
+              <small>Your saved items stay in your account</small>
             </span>
           </div>
 
           <div>
-            <ShieldCheck />
+            <MessageCircle />
             <span>
-              <strong>Demo marketplace</strong>
-              <small>No payments or trade guarantees</small>
+              <strong>Contact sellers</strong>
+              <small>Private buyer–seller conversations</small>
             </span>
           </div>
         </div>
@@ -1168,7 +1647,7 @@ function App() {
                     : "Discover listings"}
               </h2>
 
-              <p>Explore marketplace listings from across South Africa.</p>
+              <p>Explore products listed by users across South Africa.</p>
             </div>
 
             <button className="outline-button" onClick={openSellForm}>
@@ -1224,8 +1703,7 @@ function App() {
 
           <div className="market-toolbar">
             <span className="result-count" aria-live="polite">
-              {filteredProducts.length} listing
-              {filteredProducts.length === 1 ? "" : "s"} found
+              {savedLoading ? "Loading favourites…" : `${filteredProducts.length} listing${filteredProducts.length === 1 ? "" : "s"} found`}
             </span>
 
             <div className="market-search">
@@ -1261,10 +1739,7 @@ function App() {
               <h3>Could not load listings</h3>
               <p>{productsError}</p>
 
-              <button
-                className="sell-button"
-                onClick={() => window.location.reload()}
-              >
+              <button className="sell-button" onClick={loadProducts}>
                 Try again
               </button>
             </div>
@@ -1275,13 +1750,17 @@ function App() {
               <h3>
                 {myListingsOnly
                   ? "You have no listings yet"
-                  : "No listings found"}
+                  : savedOnly
+                    ? "You have no saved listings"
+                    : "No listings found"}
               </h3>
 
               <p>
                 {myListingsOnly
                   ? "Your published listings will appear here."
-                  : "Try another search or save an item using its heart button."}
+                  : savedOnly
+                    ? "Use the heart button on a listing to save it to your account."
+                    : "Try another search or browse a different category."}
               </p>
 
               {myListingsOnly ? (
@@ -1296,145 +1775,126 @@ function App() {
             </div>
           ) : (
             <div className="product-grid">
-              {filteredProducts.map((item) => (
-                <article className="product-card" key={item.id}>
-                  <div className="product-photo">
-                    <button
-                      aria-label={`View ${item.name}`}
-                      onClick={() =>
-                        setModal({ type: "product", product: item })
-                      }
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        border: 0,
-                        padding: 0,
-                        background: "transparent",
-                      }}
-                    >
-                      <ProductImage product={item} />
-                    </button>
+              {filteredProducts.map((item) => {
+                const sellerProfile = profiles[item.seller_id];
 
-                    <span className="condition-label">
-                      {String(item.id).startsWith("sample-")
-                        ? "Demo listing"
-                        : "Live listing"}
-                    </span>
-
-                    <button
-                      className={`heart-button${
-                        saved.includes(item.id) ? " saved" : ""
-                      }`}
-                      onClick={() => toggleSaved(item.id)}
-                      aria-label={
-                        saved.includes(item.id)
-                          ? `Unsave ${item.name}`
-                          : `Save ${item.name}`
-                      }
-                      aria-pressed={saved.includes(item.id)}
-                    >
-                      <Heart
-                        size={19}
-                        fill={
-                          saved.includes(item.id) ? "currentColor" : "none"
-                        }
-                      />
-                    </button>
-                  </div>
-
-                  <div className="product-info" style={{ textAlign: "left" }}>
-                    <div className="product-category">{item.category}</div>
-                    <h3>{item.name}</h3>
-
-                    <div className="product-price">
-                      {formatPrice(item.price)}
-                    </div>
-
-                    <div className="product-location">
-                      <MapPin size={14} /> {item.location}
-                    </div>
-
-                    <div className="seller-line">
+                return (
+                  <article className="product-card" key={item.id}>
+                    <div className="product-photo">
                       <button
-                        className="seller-link"
+                        aria-label={`View ${item.name}`}
                         onClick={() =>
-                          setModal({ type: "seller", product: item })
+                          setModal({ type: "product", product: item })
                         }
-                      >
-                        <UserRound size={15} /> {item.seller}
-                      </button>
-
-                      <span className="verified-tag">
-                        {String(item.id).startsWith("sample-")
-                          ? "Demo only"
-                          : "Seller account"}
-                      </span>
-                    </div>
-
-                    <button
-                      className="details-button"
-                      onClick={() =>
-                        setModal({ type: "product", product: item })
-                      }
-                    >
-                      View details <ChevronRight size={17} />
-                    </button>
-
-                    {isOwnListing(item) && (
-                      <div
                         style={{
-                          display: "flex",
-                          gap: "8px",
-                          marginTop: "10px",
+                          width: "100%",
+                          height: "100%",
+                          border: 0,
+                          padding: 0,
+                          background: "transparent",
                         }}
                       >
+                        <ProductImage product={item} />
+                      </button>
+
+                      <span className="condition-label">
+                        Live listing
+                      </span>
+
+                      <button
+                        className={`heart-button${
+                          saved.includes(item.id) ? " saved" : ""
+                        }`}
+                        onClick={() => toggleSaved(item.id)}
+                        aria-label={
+                          saved.includes(item.id)
+                            ? `Unsave ${item.name}`
+                            : `Save ${item.name}`
+                        }
+                        aria-pressed={saved.includes(item.id)}
+                        disabled={savedBusy}
+                      >
+                        <Heart
+                          size={19}
+                          fill={
+                            saved.includes(item.id)
+                              ? "currentColor"
+                              : "none"
+                          }
+                        />
+                      </button>
+                    </div>
+
+                    <div className="product-info" style={{ textAlign: "left" }}>
+                      <div className="product-category">{item.category}</div>
+                      <h3>{item.name}</h3>
+
+                      <div className="product-price">
+                        {formatPrice(item.price)}
+                      </div>
+
+                      <div className="product-location">
+                        <MapPin size={14} /> {item.location}
+                      </div>
+
+                      <div className="seller-line">
                         <button
-                          type="button"
-                          className="secondary-wide"
-                          onClick={() => openEditForm(item)}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            gap: "6px",
-                          }}
+                          className="seller-link"
+                          onClick={() => openSellerProfile(item)}
                         >
-                          <Pencil size={15} /> Edit
+                          <UserRound size={15} />
+                          {sellerProfile?.display_name || item.seller}
                         </button>
 
-                        <button
-                          type="button"
-                          className="secondary-wide"
-                          onClick={() => handleDeleteListing(item)}
-                          disabled={deletingProductId === item.id}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            gap: "6px",
-                          }}
-                        >
-                          <Trash2 size={15} />
-                          {deletingProductId === item.id
-                            ? "Deleting…"
-                            : "Delete"}
-                        </button>
+                        <span className="verified-tag">
+                          Seller profile
+                        </span>
                       </div>
-                    )}
-                  </div>
-                </article>
-              ))}
+
+                      <button
+                        className="details-button"
+                        onClick={() =>
+                          setModal({ type: "product", product: item })
+                        }
+                      >
+                        View details <ChevronRight size={17} />
+                      </button>
+
+                      {isOwnListing(item) && (
+                        <div className="listing-management">
+                          <button
+                            type="button"
+                            className="secondary-wide"
+                            onClick={() => openEditForm(item)}
+                          >
+                            <Pencil size={15} /> Edit
+                          </button>
+
+                          <button
+                            type="button"
+                            className="secondary-wide"
+                            onClick={() => handleDeleteListing(item)}
+                            disabled={deletingProductId === item.id}
+                          >
+                            <Trash2 size={15} />
+                            {deletingProductId === item.id
+                              ? "Deleting…"
+                              : "Delete"}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           )}
 
           <p className="sample-notice">
-            Listings marked "Demo listing" are illustrative examples and
-            are not real offers. Listings marked "Live listing" have been
-            submitted by registered users and are stored in the SafeTrade
-            database. Seller identities and products are not independently
-            verified. Product photo uploads are supported. Messaging and
-            payments are not connected yet. Saved favourites are currently
-            kept only for this page session.
+            Listings are submitted by registered users. SafeTrade does not
+            independently verify seller identities, product descriptions,
+            ownership or prices. Always inspect products and exercise
+            caution before making payments or arranging collection.
           </p>
         </section>
 
@@ -1447,8 +1907,8 @@ function App() {
             <span className="eyebrow">SIMPLE AND STRAIGHTFORWARD</span>
             <h2>How SafeTrade works</h2>
             <p>
-              Explore the concept. Marketplace features are still in
-              development.
+              Discover products, connect with sellers and make informed
+              trading decisions.
             </p>
           </div>
 
@@ -1474,26 +1934,26 @@ function App() {
             <h2>Trade with your eyes open.</h2>
 
             <p>
-              This prototype does not verify sellers, inspect products,
-              hold payments, or guarantee transactions.
+              SafeTrade provides marketplace tools, but buyers and sellers
+              must still take reasonable precautions when arranging trades.
             </p>
 
             <ul>
               <li>
                 <CheckCircle size={18} />
-                Sample seller profiles are not identity checks.
+                Review seller information and ask questions.
               </li>
               <li>
                 <CheckCircle size={18} />
-                Demo prices are not offers from actual sellers.
+                Inspect products before making payment.
               </li>
               <li>
                 <CheckCircle size={18} />
-                Messaging and reporting are not connected yet.
+                Avoid sending money to unverified parties.
               </li>
               <li>
                 <CheckCircle size={18} />
-                Do not use this demo to arrange real payments.
+                Use the report feature to flag suspicious listings.
               </li>
             </ul>
           </div>
@@ -1515,8 +1975,7 @@ function App() {
         </a>
 
         <p>
-          A South African marketplace concept. Product listings are
-          demonstrations.
+          A South African online marketplace connecting buyers and sellers.
         </p>
 
         <div className="footer-links">
@@ -1526,8 +1985,7 @@ function App() {
         </div>
 
         <small>
-          © {new Date().getFullYear()} SafeTrade SA. Marketplace
-          demonstration.
+          © {new Date().getFullYear()} SafeTrade SA. All rights reserved.
         </small>
       </footer>
 
@@ -1538,7 +1996,13 @@ function App() {
           aria-modal="true"
           aria-label="Log in or create an account"
         >
-          <Auth onClose={() => setShowAuth(false)} />
+          <Auth
+            recoveryMode={recoveryMode}
+            onClose={() => {
+              setShowAuth(false);
+              setRecoveryMode(false);
+            }}
+          />
         </div>
       )}
 
@@ -1554,9 +2018,11 @@ function App() {
           <div
             ref={dialogRef}
             className={`modal${
-              modal.type === "sell" || modal.type === "edit"
+              ["sell", "edit", "profile-edit", "report"].includes(modal.type)
                 ? " form-modal"
-                : modal.type !== "product"
+                : modal.type !== "product" &&
+                    modal.type !== "conversation" &&
+                    modal.type !== "inbox"
                   ? " small-modal"
                   : ""
             }`}
@@ -1605,8 +2071,11 @@ function App() {
                     </div>
 
                     <div>
-                      <strong>{selectedProduct.seller}</strong>
-                      <small>Identity not verified</small>
+                      <strong>
+                        {profiles[selectedProduct.seller_id]?.display_name ||
+                          selectedProduct.seller}
+                      </strong>
+                      <small>Seller profile — not identity verified</small>
                     </div>
                   </div>
 
@@ -1622,12 +2091,8 @@ function App() {
 
                       <button
                         className="secondary-wide"
-                        onClick={() =>
-                          handleDeleteListing(selectedProduct)
-                        }
-                        disabled={
-                          deletingProductId === selectedProduct.id
-                        }
+                        onClick={() => handleDeleteListing(selectedProduct)}
+                        disabled={deletingProductId === selectedProduct.id}
                       >
                         <Trash2 size={17} />
                         {deletingProductId === selectedProduct.id
@@ -1638,17 +2103,7 @@ function App() {
                   ) : (
                     <button
                       className="primary-wide"
-                      onClick={() => {
-                        if (!user) {
-                          openAuth();
-                          return;
-                        }
-
-                        showNotice(
-                          "Messaging is not connected",
-                          "You are signed in, but seller messaging is still being developed. No message has been sent."
-                        );
-                      }}
+                      onClick={() => startConversation(selectedProduct)}
                     >
                       <MessageCircle size={17} />
                       Contact seller
@@ -1677,21 +2132,29 @@ function App() {
                   {!isOwnListing(selectedProduct) && (
                     <button
                       className="report-link"
-                      onClick={() =>
-                        showNotice(
-                          "Reporting is not connected",
-                          "No report has been submitted. This button is a placeholder for a future reporting feature."
-                        )
-                      }
+                      onClick={() => {
+                        if (!user) {
+                          openAuth();
+                          return;
+                        }
+
+                        setReportReason(reportReasons[0]);
+                        setReportDetails("");
+                        setFormError("");
+                        setModal({
+                          type: "report",
+                          product: selectedProduct,
+                        });
+                      }}
                     >
-                      <Flag size={14} /> Report listing — demo
+                      <Flag size={14} /> Report listing
                     </button>
                   )}
 
                   <p className="modal-disclaimer">
-                    Demonstration listing only. Photos are illustrative.
-                    No seller verification, payment protection, or
-                    fulfilment is provided.
+                    Seller identities, product ownership, descriptions and
+                    prices are not independently verified by SafeTrade.
+                    Exercise caution before completing a transaction.
                   </p>
                 </div>
               </div>
@@ -1705,36 +2168,56 @@ function App() {
 
                 <h2 id="modal-title">{modalTitle}</h2>
 
-                <p>
-                  <strong>{selectedProduct.seller}</strong>
-                </p>
+                {modal.loading ? (
+                  <p className="form-intro">Loading seller profile…</p>
+                ) : (
+                  <>
+                    <p>
+                      <strong>
+                        {modal.profile?.display_name ||
+                          selectedProduct.seller ||
+                          "SafeTrade seller"}
+                      </strong>
+                    </p>
 
-                <p className="product-location">
-                  <MapPin size={15} />
-                  {selectedProduct.location}
-                </p>
+                    {modal.profile?.location && (
+                      <p className="product-location">
+                        <MapPin size={15} />
+                        {modal.profile.location}
+                      </p>
+                    )}
 
-                <div className="profile-status">
-                  <UserRound size={18} />
-                  Demonstration profile — identity not verified
-                </div>
+                    {modal.profile?.bio ? (
+                      <p className="form-intro">{modal.profile.bio}</p>
+                    ) : (
+                      <p className="form-intro">
+                        This seller has not added a profile description.
+                      </p>
+                    )}
 
-                <p className="form-intro">
-                  This listing is not linked to a verified seller account.
-                  No trading history or reviews are available.
-                </p>
+                    <div className="profile-status">
+                      <ShieldCheck size={18} />
+                      Registered account — identity not verified
+                    </div>
 
-                <button
-                  className="primary-wide"
-                  onClick={() =>
-                    setModal({
-                      type: "product",
-                      product: selectedProduct,
-                    })
-                  }
-                >
-                  View listing <ChevronRight size={17} />
-                </button>
+                    <p className="modal-disclaimer">
+                      This profile displays information provided by the
+                      seller. It is not an identity verification certificate.
+                    </p>
+
+                    <button
+                      className="primary-wide"
+                      onClick={() => {
+                        setModal({
+                          type: "product",
+                          product: selectedProduct,
+                        });
+                      }}
+                    >
+                      View listing <ChevronRight size={17} />
+                    </button>
+                  </>
+                )}
               </>
             )}
 
@@ -1760,19 +2243,20 @@ function App() {
                     </p>
 
                     <div className="profile-status">
-                      <UserRound size={18} />
+                      <ShieldCheck size={18} />
                       Signed in
                     </div>
 
-                    <p className="modal-disclaimer">
-                      Your listings are saved to the SafeTrade database.
-                      Seller identity and products are not independently
-                      verified. Favourites are currently saved only for
-                      this page session.
-                    </p>
-
                     <button
                       className="primary-wide"
+                      onClick={openProfileEditor}
+                    >
+                      <Pencil size={17} />
+                      Edit public profile
+                    </button>
+
+                    <button
+                      className="secondary-wide"
                       onClick={() => {
                         setModal(null);
                         setMyListingsOnly(true);
@@ -1782,6 +2266,27 @@ function App() {
                     >
                       <ShoppingBag size={17} />
                       My Listings ({myListingsCount})
+                    </button>
+
+                    <button
+                      className="secondary-wide"
+                      onClick={openInbox}
+                    >
+                      <Inbox size={17} />
+                      Messages
+                    </button>
+
+                    <button
+                      className="secondary-wide"
+                      onClick={() => {
+                        setModal(null);
+                        setSavedOnly(true);
+                        setMyListingsOnly(false);
+                        scrollToMarketplace();
+                      }}
+                    >
+                      <Heart size={17} />
+                      Saved listings ({saved.length})
                     </button>
 
                     <button
@@ -1808,6 +2313,216 @@ function App() {
               </>
             )}
 
+            {modal.type === "profile-edit" && (
+              <>
+                <span className="eyebrow">YOUR PUBLIC INFORMATION</span>
+
+                <h2 id="modal-title">{modalTitle}</h2>
+
+                <p className="form-intro">
+                  This information is displayed on your public seller profile.
+                  Do not include private information.
+                </p>
+
+                <form onSubmit={saveProfile}>
+                  <label>
+                    Display name
+                    <input
+                      type="text"
+                      value={profileForm.display_name}
+                      onChange={(event) =>
+                        setProfileForm((current) => ({
+                          ...current,
+                          display_name: event.target.value,
+                        }))
+                      }
+                      maxLength={80}
+                      required
+                    />
+                  </label>
+
+                  <label>
+                    City or town
+                    <input
+                      type="text"
+                      value={profileForm.location}
+                      onChange={(event) =>
+                        setProfileForm((current) => ({
+                          ...current,
+                          location: event.target.value,
+                        }))
+                      }
+                      maxLength={100}
+                      placeholder="For example: Cape Town"
+                    />
+                  </label>
+
+                  <label>
+                    About you
+                    <textarea
+                      rows={4}
+                      value={profileForm.bio}
+                      onChange={(event) =>
+                        setProfileForm((current) => ({
+                          ...current,
+                          bio: event.target.value,
+                        }))
+                      }
+                      maxLength={500}
+                      placeholder="Tell buyers a little about yourself."
+                    />
+                  </label>
+
+                  {formError && (
+                    <p role="alert" className="form-error">
+                      {formError}
+                    </p>
+                  )}
+
+                  <button
+                    className="primary-wide"
+                    type="submit"
+                    disabled={profileSaving}
+                  >
+                    <Save size={17} />
+                    {profileSaving ? "Saving…" : "Save profile"}
+                  </button>
+                </form>
+              </>
+            )}
+
+            {modal.type === "inbox" && (
+              <div className="inbox-content">
+                <h2 id="modal-title">Your messages</h2>
+
+                <p className="form-intro">
+                  Your private conversations with buyers and sellers.
+                </p>
+
+                {modal.loading ? (
+                  <div className="empty-state">
+                    <MessageCircle size={32} />
+                    <p>Loading conversations…</p>
+                  </div>
+                ) : conversations.length === 0 ? (
+                  <div className="empty-state">
+                    <Inbox size={35} />
+                    <h3>No conversations yet</h3>
+                    <p>
+                      When you contact a seller or receive a message,
+                      conversations will appear here.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="conversation-list">
+                    {conversations.map((conversation) => (
+                      <button
+                        className="conversation-list-item"
+                        key={conversation.id}
+                        onClick={() => openConversation(conversation)}
+                      >
+                        <span className="conversation-avatar">
+                          <UserRound size={20} />
+                        </span>
+
+                        <span className="conversation-summary">
+                          <strong>{conversation.otherUserName}</strong>
+                          <small>
+                            {conversation.product?.name ||
+                              "Marketplace listing"}
+                          </small>
+                          <small>
+                            Started {formatDate(conversation.created_at)}
+                          </small>
+                        </span>
+
+                        <ChevronRight size={18} />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {modal.type === "conversation" && (
+              <div className="conversation-content">
+                <button
+                  type="button"
+                  className="back-to-inbox"
+                  onClick={openInbox}
+                >
+                  <ArrowLeft size={16} />
+                  Back to messages
+                </button>
+
+                <h2 id="modal-title">
+                  {modal.otherUserName || "Conversation"}
+                </h2>
+
+                {modal.product && (
+                  <div className="conversation-product">
+                    <strong>{modal.product.name}</strong>
+                    <span>{formatPrice(modal.product.price)}</span>
+                  </div>
+                )}
+
+                <div className="message-list" aria-live="polite">
+                  {messagesLoading ? (
+                    <p className="message-empty">Loading messages…</p>
+                  ) : messages.length === 0 ? (
+                    <p className="message-empty">
+                      This is the beginning of your conversation. Send a
+                      message to get started.
+                    </p>
+                  ) : (
+                    messages.map((message) => (
+                      <div
+                        key={message.id}
+                        className={`message-bubble${
+                          message.sender_id === user?.id
+                            ? " own-message"
+                            : ""
+                        }`}
+                      >
+                        <p>{message.body}</p>
+                        <small>{formatDateTime(message.created_at)}</small>
+                      </div>
+                    ))
+                  )}
+
+                  <div ref={messageEndRef} />
+                </div>
+
+                <form className="message-form" onSubmit={sendMessage}>
+                  <textarea
+                    rows={2}
+                    value={messageText}
+                    onChange={(event) =>
+                      setMessageText(event.target.value)
+                    }
+                    placeholder="Write your message…"
+                    maxLength={5000}
+                    required
+                  />
+
+                  <button
+                    className="sell-button"
+                    type="submit"
+                    disabled={messageSending || !messageText.trim()}
+                    aria-label="Send message"
+                  >
+                    <Send size={17} />
+                    {messageSending ? "Sending…" : "Send"}
+                  </button>
+                </form>
+
+                <p className="modal-disclaimer">
+                  Do not share passwords, banking PINs or other sensitive
+                  information in messages.
+                </p>
+              </div>
+            )}
+
             {(modal.type === "sell" || modal.type === "edit") && (
               <>
                 <span className="eyebrow">
@@ -1821,7 +2536,7 @@ function App() {
                 <p className="form-intro">
                   {modal.type === "edit"
                     ? "Update your product details and manage its photo."
-                    : "Add your item to the marketplace. You must be signed in to publish a listing."}
+                    : "Add your product to the SafeTrade marketplace."}
                 </p>
 
                 <form onSubmit={submitListing}>
@@ -1931,32 +2646,18 @@ function App() {
                     !imagePreview &&
                     !removeExistingImage &&
                     modal.product?.image && (
-                      <div
-                        style={{
-                          marginTop: "10px",
-                          marginBottom: "16px",
-                        }}
-                      >
+                      <div className="image-edit-preview">
                         <p className="form-intro">Current product photo</p>
 
                         <img
                           src={modal.product.image}
                           alt="Current product"
-                          style={{
-                            display: "block",
-                            width: "100%",
-                            maxHeight: "220px",
-                            objectFit: "contain",
-                            borderRadius: "12px",
-                            background: "#f1f5f2",
-                          }}
                         />
 
                         <button
                           type="button"
                           onClick={removeSelectedImage}
                           disabled={listingSubmitting}
-                          style={{ marginTop: "8px" }}
                         >
                           Remove current photo
                         </button>
@@ -1964,32 +2665,18 @@ function App() {
                     )}
 
                   {imagePreview && (
-                    <div
-                      style={{
-                        marginTop: "10px",
-                        marginBottom: "16px",
-                      }}
-                    >
+                    <div className="image-edit-preview">
                       <p className="form-intro">New photo preview</p>
 
                       <img
                         src={imagePreview}
                         alt="Preview of the product being listed"
-                        style={{
-                          display: "block",
-                          width: "100%",
-                          maxHeight: "220px",
-                          objectFit: "contain",
-                          borderRadius: "12px",
-                          background: "#f1f5f2",
-                        }}
                       />
 
                       <button
                         type="button"
                         onClick={removeSelectedImage}
                         disabled={listingSubmitting}
-                        style={{ marginTop: "8px" }}
                       >
                         Remove photo
                       </button>
@@ -2006,17 +2693,13 @@ function App() {
 
                   <div className="form-note">
                     <ShieldCheck size={17} />
-                    Add one JPG, PNG, or WEBP photo (maximum 5 MB). Your
-                    photo and listing will be saved to SafeTrade. Listings
-                    are not independently verified. Do not enter private
-                    contact or payment information in the description.
+                    Add one JPG, PNG, or WEBP photo (maximum 5 MB). Do not
+                    include private contact or payment information in
+                    your listing.
                   </div>
 
                   {formError && (
-                    <p
-                      role="alert"
-                      style={{ color: "#b42318", fontSize: "13px" }}
-                    >
+                    <p role="alert" className="form-error">
                       {formError}
                     </p>
                   )}
@@ -2037,6 +2720,66 @@ function App() {
                       : modal.type === "edit"
                         ? "Save changes"
                         : "Publish listing"}
+                  </button>
+                </form>
+              </>
+            )}
+
+            {modal.type === "report" && (
+              <>
+                <span className="eyebrow">HELP KEEP SAFETRADE SAFE</span>
+
+                <h2 id="modal-title">Report listing</h2>
+
+                <p className="form-intro">
+                  Report a listing that appears suspicious, misleading or
+                  inappropriate. Reports are recorded for review; submission
+                  does not automatically remove a listing.
+                </p>
+
+                <form onSubmit={submitReport}>
+                  <label>
+                    Reason for report
+                    <select
+                      value={reportReason}
+                      onChange={(event) =>
+                        setReportReason(event.target.value)
+                      }
+                    >
+                      {reportReasons.map((reason) => (
+                        <option key={reason} value={reason}>
+                          {reason}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label>
+                    Additional details (optional)
+                    <textarea
+                      rows={4}
+                      value={reportDetails}
+                      onChange={(event) =>
+                        setReportDetails(event.target.value)
+                      }
+                      maxLength={2000}
+                      placeholder="Explain why you are reporting this listing."
+                    />
+                  </label>
+
+                  {formError && (
+                    <p role="alert" className="form-error">
+                      {formError}
+                    </p>
+                  )}
+
+                  <button
+                    className="primary-wide"
+                    type="submit"
+                    disabled={reportSubmitting}
+                  >
+                    <Flag size={17} />
+                    {reportSubmitting ? "Submitting…" : "Submit report"}
                   </button>
                 </form>
               </>
