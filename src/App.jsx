@@ -14,6 +14,8 @@ import {
   Flag,
   CheckCircle,
   LogOut,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import Auth from "./Auth";
 import { supabase } from "./supabaseClient";
@@ -22,13 +24,22 @@ import "./App.css";
 const categories = [
   "All",
   "Electronics",
-  "Furniture",
-  "Vehicles",
+  "Food & Groceries",
   "Fashion",
+  "Furniture",
   "Home & Garden",
+  "Beauty & Personal Care",
+  "Vehicles",
+  "Property",
+  "Books & Stationery",
+  "Sports & Outdoors",
+  "Baby & Kids",
+  "Agriculture & Farming",
+  "Tools & Equipment",
+  "Services",
+  "Other",
 ];
 
-// Sample photos are illustrative and may not show the exact item described.
 const initialProducts = [
   {
     id: "sample-phone",
@@ -190,6 +201,22 @@ function formatPrice(value) {
   })}`;
 }
 
+// Extracts the file path of a photo stored in the Supabase bucket.
+function getProductImagePath(imageUrl) {
+  if (!imageUrl) return null;
+
+  const marker = "/storage/v1/object/public/product-images/";
+  const index = imageUrl.indexOf(marker);
+
+  if (index === -1) return null;
+
+  try {
+    return decodeURIComponent(imageUrl.slice(index + marker.length));
+  } catch {
+    return imageUrl.slice(index + marker.length);
+  }
+}
+
 function ProductImage({ product }) {
   const [failed, setFailed] = useState(false);
 
@@ -234,23 +261,66 @@ function ProductImage({ product }) {
 
 function App() {
   const [products, setProducts] = useState(initialProducts);
+  const [productsLoading, setProductsLoading] = useState(true);
+  const [productsError, setProductsError] = useState("");
+  const [listingSubmitting, setListingSubmitting] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState("");
+  const [removeExistingImage, setRemoveExistingImage] = useState(false);
+
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const [saved, setSaved] = useState([]);
   const [savedOnly, setSavedOnly] = useState(false);
+  const [myListingsOnly, setMyListingsOnly] = useState(false);
+
   const [menuOpen, setMenuOpen] = useState(false);
   const [modal, setModal] = useState(null);
   const [showAuth, setShowAuth] = useState(false);
+
   const [session, setSession] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState("");
   const [signingOut, setSigningOut] = useState(false);
+
   const [newProduct, setNewProduct] = useState({ ...emptyProduct });
   const [formError, setFormError] = useState("");
+  const [deletingProductId, setDeletingProductId] = useState(null);
 
   const dialogRef = useRef(null);
+  const imageInputRef = useRef(null);
   const closeButtonRef = useRef(null);
+
   const overlayOpen = Boolean(modal || showAuth);
+  const user = session?.user;
+
+  const displayName =
+    user?.user_metadata?.full_name?.trim() ||
+    user?.email?.split("@")[0] ||
+    "My account";
+
+  const isOwnListing = (product) =>
+    Boolean(
+      user &&
+        product?.seller_id === user.id &&
+        !String(product.id).startsWith("sample-")
+    );
+
+  const myListingsCount = products.filter(
+    (product) => isOwnListing(product)
+  ).length;
+
+  useEffect(() => {
+    if (!selectedImage) {
+      setImagePreview("");
+      return undefined;
+    }
+
+    const previewUrl = URL.createObjectURL(selectedImage);
+    setImagePreview(previewUrl);
+
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [selectedImage]);
 
   useEffect(() => {
     let active = true;
@@ -287,6 +357,42 @@ function App() {
     return () => {
       active = false;
       subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadProducts() {
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (!active) return;
+
+      if (error) {
+        console.error("Error loading products:", error.message);
+        setProductsError(error.message);
+        setProductsLoading(false);
+        return;
+      }
+
+      const databaseProducts = (data ?? []).map((product) => ({
+        ...product,
+        price: Number(product.price),
+        image: product.image || "",
+      }));
+
+      setProducts([...databaseProducts, ...initialProducts]);
+      setProductsError("");
+      setProductsLoading(false);
+    }
+
+    loadProducts();
+
+    return () => {
+      active = false;
     };
   }, []);
 
@@ -355,13 +461,6 @@ function App() {
     };
   }, [overlayOpen, showAuth, modal?.type]);
 
-  const user = session?.user;
-
-  const displayName =
-    user?.user_metadata?.full_name?.trim() ||
-    user?.email?.split("@")[0] ||
-    "My account";
-
   const normalizedSearch = search.trim().toLowerCase();
 
   const filteredProducts = products.filter((product) => {
@@ -378,7 +477,8 @@ function App() {
     return (
       matchesSearch &&
       (category === "All" || product.category === category) &&
-      (!savedOnly || saved.includes(product.id))
+      (!savedOnly || saved.includes(product.id)) &&
+      (!myListingsOnly || isOwnListing(product))
     );
   });
 
@@ -410,6 +510,7 @@ function App() {
     setSearch("");
     setCategory("All");
     setSavedOnly(false);
+    setMyListingsOnly(false);
   }
 
   function scrollToMarketplace() {
@@ -419,11 +520,49 @@ function App() {
   function openSellForm() {
     setMenuOpen(false);
     setFormError("");
+    setSelectedImage(null);
+    setRemoveExistingImage(false);
+
+    if (imageInputRef.current) imageInputRef.current.value = "";
+
+    if (!user) {
+      openAuth();
+      return;
+    }
+
     setNewProduct({
       ...emptyProduct,
-      seller: user ? displayName : "",
+      seller: displayName,
     });
+
     setModal({ type: "sell" });
+  }
+
+  function openEditForm(product) {
+    if (!isOwnListing(product)) {
+      showNotice(
+        "Permission denied",
+        "You can only edit listings belonging to your account."
+      );
+      return;
+    }
+
+    setFormError("");
+    setSelectedImage(null);
+    setRemoveExistingImage(false);
+
+    if (imageInputRef.current) imageInputRef.current.value = "";
+
+    setNewProduct({
+      name: product.name || "",
+      category: product.category || "Other",
+      price: String(product.price ?? ""),
+      seller: product.seller || displayName,
+      location: product.location || "",
+      description: product.description || "",
+    });
+
+    setModal({ type: "edit", product });
   }
 
   function updateProduct(field, value) {
@@ -431,6 +570,39 @@ function App() {
       ...current,
       [field]: value,
     }));
+  }
+
+  function handleImageChange(event) {
+    const file = event.target.files?.[0] || null;
+    if (!file) return;
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+
+    if (!allowedTypes.includes(file.type)) {
+      setFormError("Please choose a JPG, PNG, or WEBP image.");
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setFormError("The product photo must be 5 MB or smaller.");
+      event.target.value = "";
+      return;
+    }
+
+    setFormError("");
+    setRemoveExistingImage(false);
+    setSelectedImage(file);
+  }
+
+  function removeSelectedImage() {
+    setSelectedImage(null);
+
+    if (modal?.type === "edit") {
+      setRemoveExistingImage(true);
+    }
+
+    if (imageInputRef.current) imageInputRef.current.value = "";
   }
 
   async function handleSignOut() {
@@ -444,6 +616,7 @@ function App() {
       if (error) throw error;
 
       setSession(null);
+      setMyListingsOnly(false);
       setModal(null);
       setMenuOpen(false);
     } catch (error) {
@@ -456,17 +629,31 @@ function App() {
     }
   }
 
-  function submitListing(event) {
+  async function submitListing(event) {
     event.preventDefault();
     setFormError("");
 
-    const price = Number(newProduct.price);
+    if (!user) {
+      setModal(null);
+      openAuth();
+      return;
+    }
 
-    if (
-      !newProduct.name.trim() ||
-      !newProduct.seller.trim() ||
-      !newProduct.location.trim()
-    ) {
+    const isEditing = modal?.type === "edit";
+    const existingProduct = isEditing ? modal.product : null;
+
+    if (isEditing && !isOwnListing(existingProduct)) {
+      setFormError("You are not authorised to edit this listing.");
+      return;
+    }
+
+    const price = Number(newProduct.price);
+    const name = newProduct.name.trim();
+    const seller = newProduct.seller.trim();
+    const location = newProduct.location.trim();
+    const description = newProduct.description.trim();
+
+    if (!name || !seller || !location) {
       setFormError("Please complete the required fields.");
       return;
     }
@@ -476,29 +663,262 @@ function App() {
       return;
     }
 
-    const product = {
-      ...newProduct,
-      id: `local-${Date.now()}-${Math.random()
-        .toString(36)
-        .slice(2)}`,
-      name: newProduct.name.trim(),
-      seller: newProduct.seller.trim(),
-      location: newProduct.location.trim(),
-      description:
-        newProduct.description.trim() ||
-        "No description provided for this demonstration listing.",
-      price,
-      image: "",
-    };
+    setListingSubmitting(true);
 
-    setProducts((current) => [product, ...current]);
-    setNewProduct({ ...emptyProduct });
-    clearFilters();
+    let uploadedImagePath = null;
 
-    showNotice(
-      "Demonstration listing added",
-      "Your listing appears in this browser session only. It has not been published or saved to Supabase. Refreshing the page removes it. Photo uploads are not connected yet."
+    try {
+      // Keep the existing photo when editing unless the user removes it.
+      let imageUrl = isEditing ? existingProduct.image || "" : "";
+
+      if (removeExistingImage) {
+        imageUrl = "";
+      }
+
+      // Upload a replacement photo when the user selects one.
+      if (selectedImage) {
+        const fileExtension =
+          selectedImage.name.split(".").pop()?.toLowerCase() || "jpg";
+
+        const safeExtension = [
+          "jpg",
+          "jpeg",
+          "png",
+          "webp",
+        ].includes(fileExtension)
+          ? fileExtension
+          : "jpg";
+
+        uploadedImagePath = `${user.id}/${Date.now()}-${Math.random()
+          .toString(36)
+          .slice(2)}.${safeExtension}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("product-images")
+          .upload(uploadedImagePath, selectedImage, {
+            cacheControl: "3600",
+            upsert: false,
+            contentType: selectedImage.type,
+          });
+
+        if (uploadError) {
+          uploadedImagePath = null;
+          throw new Error(`Photo upload failed: ${uploadError.message}`);
+        }
+
+        const { data: publicImage } = supabase.storage
+          .from("product-images")
+          .getPublicUrl(uploadedImagePath);
+
+        imageUrl = publicImage.publicUrl;
+      }
+
+      const listingToSave = {
+        seller_id: user.id,
+        name,
+        category: newProduct.category,
+        price,
+        location,
+        seller,
+        image: imageUrl,
+        description: description || "No description provided.",
+      };
+
+      let data;
+      let error;
+
+      if (isEditing) {
+        const result = await supabase
+          .from("products")
+          .update(listingToSave)
+          .eq("id", existingProduct.id)
+          .eq("seller_id", user.id)
+          .select()
+          .single();
+
+        data = result.data;
+        error = result.error;
+      } else {
+        const result = await supabase
+          .from("products")
+          .insert(listingToSave)
+          .select()
+          .single();
+
+        data = result.data;
+        error = result.error;
+      }
+
+      if (error) throw error;
+
+      if (!data) {
+        throw new Error("The listing could not be saved.");
+      }
+
+      const savedProduct = {
+        ...data,
+        price: Number(data.price),
+        image: data.image || "",
+      };
+
+      // Update the local marketplace immediately.
+      if (isEditing) {
+        setProducts((current) =>
+          current.map((item) =>
+            item.id === savedProduct.id ? savedProduct : item
+          )
+        );
+      } else {
+        setProducts((current) => [
+          savedProduct,
+          ...current.filter((item) => item.id !== savedProduct.id),
+        ]);
+      }
+
+      // Only remove the old photo after the database update succeeds.
+      if (isEditing && (selectedImage || removeExistingImage)) {
+        const oldImagePath = getProductImagePath(existingProduct.image);
+
+        if (oldImagePath) {
+          const { error: removeError } = await supabase.storage
+            .from("product-images")
+            .remove([oldImagePath]);
+
+          if (removeError) {
+            console.warn(
+              "The listing was saved, but the previous photo could not be removed:",
+              removeError.message
+            );
+          }
+        }
+      }
+
+      setNewProduct({ ...emptyProduct });
+      setSelectedImage(null);
+      setRemoveExistingImage(false);
+
+      if (imageInputRef.current) imageInputRef.current.value = "";
+
+      clearFilters();
+      setModal(null);
+
+      showNotice(
+        isEditing ? "Listing updated" : "Listing published",
+        isEditing
+          ? "Your listing has been updated successfully."
+          : "Your listing has been saved to SafeTrade and is now visible in the marketplace."
+      );
+    } catch (error) {
+      // Remove a newly uploaded photo if saving the listing failed.
+      if (uploadedImagePath) {
+        try {
+          await supabase.storage
+            .from("product-images")
+            .remove([uploadedImagePath]);
+        } catch (cleanupError) {
+          console.warn(
+            "Could not remove the uploaded photo after the listing failed:",
+            cleanupError
+          );
+        }
+      }
+
+      console.error("Error saving listing:", error);
+
+      setFormError(
+        error.message || "We could not save your listing. Please try again."
+      );
+    } finally {
+      setListingSubmitting(false);
+    }
+  }
+
+  async function handleDeleteListing(product) {
+    if (!user || !isOwnListing(product)) {
+      showNotice(
+        "Permission denied",
+        "You can only delete listings belonging to your account."
+      );
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${product.name}"? This action cannot be undone.`
     );
+
+    if (!confirmed) return;
+
+    setDeletingProductId(product.id);
+
+    try {
+      const { data, error } = await supabase
+        .from("products")
+        .delete()
+        .eq("id", product.id)
+        .eq("seller_id", user.id)
+        .select("id")
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (!data) {
+        throw new Error(
+          "The listing was not deleted. Please check that you own this listing."
+        );
+      }
+
+      // Remove the listing from the page.
+      setProducts((current) =>
+        current.filter((item) => item.id !== product.id)
+      );
+
+      setSaved((current) =>
+        current.filter((item) => item !== product.id)
+      );
+
+      if (
+        (modal?.type === "product" ||
+          modal?.type === "edit") &&
+        modal.product?.id === product.id
+      ) {
+        setModal(null);
+      }
+
+      // Remove the associated uploaded photo, if it belongs to our bucket.
+      const imagePath = getProductImagePath(product.image);
+
+      let photoWarning = "";
+
+      if (imagePath) {
+        const { error: imageError } = await supabase.storage
+          .from("product-images")
+          .remove([imagePath]);
+
+        if (imageError) {
+          console.warn(
+            "Listing deleted, but photo removal failed:",
+            imageError.message
+          );
+
+          photoWarning =
+            " The listing was deleted, but its photo could not be removed automatically.";
+        }
+      }
+
+      showNotice(
+        "Listing deleted",
+        `Your listing has been deleted successfully.${photoWarning}`
+      );
+    } catch (error) {
+      console.error("Error deleting listing:", error);
+
+      showNotice(
+        "Could not delete listing",
+        error.message || "Please try again."
+      );
+    } finally {
+      setDeletingProductId(null);
+    }
   }
 
   const selectedProduct = modal?.product;
@@ -509,10 +929,12 @@ function App() {
       : modal?.type === "seller"
         ? "Seller information"
         : modal?.type === "sell"
-          ? "Add a demonstration listing"
-          : modal?.type === "account"
-            ? "Your account"
-            : modal?.title || "";
+          ? "Post a listing"
+          : modal?.type === "edit"
+            ? "Edit your listing"
+            : modal?.type === "account"
+              ? "Your account"
+              : modal?.title || "";
 
   return (
     <div className="app" id="home">
@@ -539,9 +961,11 @@ function App() {
             <a href="#marketplace" onClick={() => setMenuOpen(false)}>
               Marketplace
             </a>
+
             <a href="#how-it-works" onClick={() => setMenuOpen(false)}>
               How it works
             </a>
+
             <a href="#safety" onClick={() => setMenuOpen(false)}>
               Safety centre
             </a>
@@ -573,6 +997,7 @@ function App() {
               aria-pressed={savedOnly}
               onClick={() => {
                 setSavedOnly((current) => !current);
+                setMyListingsOnly(false);
                 scrollToMarketplace();
               }}
             >
@@ -639,12 +1064,14 @@ function App() {
               }}
             >
               <Search size={20} />
+
               <input
                 aria-label="Search marketplace"
                 placeholder="What are you looking for?"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
               />
+
               <button type="submit">Search</button>
             </form>
 
@@ -694,6 +1121,7 @@ function App() {
               <small>Find something useful</small>
             </span>
           </div>
+
           <div>
             <MapPin />
             <span>
@@ -701,6 +1129,7 @@ function App() {
               <small>Search by city or town</small>
             </span>
           </div>
+
           <div>
             <Heart />
             <span>
@@ -708,6 +1137,7 @@ function App() {
               <small>For this page session only</small>
             </span>
           </div>
+
           <div>
             <ShieldCheck />
             <span>
@@ -725,10 +1155,16 @@ function App() {
           <div className="section-heading">
             <div style={{ textAlign: "left" }}>
               <span className="eyebrow">EXPLORE THE MARKETPLACE</span>
+
               <h2>
-                {savedOnly ? "Your saved listings" : "Discover listings"}
+                {myListingsOnly
+                  ? "My listings"
+                  : savedOnly
+                    ? "Your saved listings"
+                    : "Discover listings"}
               </h2>
-              <p>Browse sample items or add a demonstration listing.</p>
+
+              <p>Explore marketplace listings from across South Africa.</p>
             </div>
 
             <button className="outline-button" onClick={openSellForm}>
@@ -753,10 +1189,28 @@ function App() {
             <button
               className={`category-chip${savedOnly ? " active" : ""}`}
               aria-pressed={savedOnly}
-              onClick={() => setSavedOnly((current) => !current)}
+              onClick={() => {
+                setSavedOnly((current) => !current);
+                setMyListingsOnly(false);
+              }}
             >
               Saved ({saved.length})
             </button>
+
+            {user && (
+              <button
+                className={`category-chip${
+                  myListingsOnly ? " active" : ""
+                }`}
+                aria-pressed={myListingsOnly}
+                onClick={() => {
+                  setMyListingsOnly((current) => !current);
+                  setSavedOnly(false);
+                }}
+              >
+                My Listings ({myListingsCount})
+              </button>
+            )}
           </div>
 
           <div className="market-toolbar">
@@ -767,6 +1221,7 @@ function App() {
 
             <div className="market-search">
               <Search size={17} />
+
               <input
                 aria-label="Filter listings"
                 placeholder="Search items, categories or locations"
@@ -785,16 +1240,50 @@ function App() {
             </div>
           </div>
 
-          {filteredProducts.length === 0 ? (
+          {productsLoading ? (
             <div className="empty-state">
               <ShoppingBag size={38} />
-              <h3>No listings found</h3>
-              <p>
-                Try another search or save an item using its heart button.
-              </p>
-              <button className="sell-button" onClick={clearFilters}>
-                Clear filters
+              <h3>Loading listings…</h3>
+              <p>Connecting to the SafeTrade marketplace.</p>
+            </div>
+          ) : productsError ? (
+            <div className="empty-state">
+              <ShoppingBag size={38} />
+              <h3>Could not load listings</h3>
+              <p>{productsError}</p>
+
+              <button
+                className="sell-button"
+                onClick={() => window.location.reload()}
+              >
+                Try again
               </button>
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="empty-state">
+              <ShoppingBag size={38} />
+
+              <h3>
+                {myListingsOnly
+                  ? "You have no listings yet"
+                  : "No listings found"}
+              </h3>
+
+              <p>
+                {myListingsOnly
+                  ? "Your published listings will appear here."
+                  : "Try another search or save an item using its heart button."}
+              </p>
+
+              {myListingsOnly ? (
+                <button className="sell-button" onClick={openSellForm}>
+                  <Plus size={17} /> Post your first listing
+                </button>
+              ) : (
+                <button className="sell-button" onClick={clearFilters}>
+                  Clear filters
+                </button>
+              )}
             </div>
           ) : (
             <div className="product-grid">
@@ -817,7 +1306,11 @@ function App() {
                       <ProductImage product={item} />
                     </button>
 
-                    <span className="condition-label">Demo listing</span>
+                    <span className="condition-label">
+                      {String(item.id).startsWith("sample-")
+                        ? "Demo listing"
+                        : "Live listing"}
+                    </span>
 
                     <button
                       className={`heart-button${
@@ -843,9 +1336,11 @@ function App() {
                   <div className="product-info" style={{ textAlign: "left" }}>
                     <div className="product-category">{item.category}</div>
                     <h3>{item.name}</h3>
+
                     <div className="product-price">
                       {formatPrice(item.price)}
                     </div>
+
                     <div className="product-location">
                       <MapPin size={14} /> {item.location}
                     </div>
@@ -859,7 +1354,12 @@ function App() {
                       >
                         <UserRound size={15} /> {item.seller}
                       </button>
-                      <span className="verified-tag">Demo only</span>
+
+                      <span className="verified-tag">
+                        {String(item.id).startsWith("sample-")
+                          ? "Demo only"
+                          : "Seller account"}
+                      </span>
                     </div>
 
                     <button
@@ -870,6 +1370,48 @@ function App() {
                     >
                       View details <ChevronRight size={17} />
                     </button>
+
+                    {isOwnListing(item) && (
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "8px",
+                          marginTop: "10px",
+                        }}
+                      >
+                        <button
+                          type="button"
+                          className="secondary-wide"
+                          onClick={() => openEditForm(item)}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "6px",
+                          }}
+                        >
+                          <Pencil size={15} /> Edit
+                        </button>
+
+                        <button
+                          type="button"
+                          className="secondary-wide"
+                          onClick={() => handleDeleteListing(item)}
+                          disabled={deletingProductId === item.id}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "6px",
+                          }}
+                        >
+                          <Trash2 size={15} />
+                          {deletingProductId === item.id
+                            ? "Deleting…"
+                            : "Delete"}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </article>
               ))}
@@ -877,11 +1419,13 @@ function App() {
           )}
 
           <p className="sample-notice">
-            Demonstration only. Photos are illustrative and may not show
-            the exact products described. Products, prices and seller
-            details are not verified live advertisements. Added listings
-            and favourites disappear when you refresh. They are not saved
-            to your account.
+            Listings marked "Demo listing" are illustrative examples and
+            are not real offers. Listings marked "Live listing" have been
+            submitted by registered users and are stored in the SafeTrade
+            database. Seller identities and products are not independently
+            verified. Product photo uploads are supported. Messaging and
+            payments are not connected yet. Saved favourites are currently
+            kept only for this page session.
           </p>
         </section>
 
@@ -919,6 +1463,7 @@ function App() {
           <div className="safety-content" style={{ textAlign: "left" }}>
             <span className="eyebrow">YOUR SAFETY MATTERS</span>
             <h2>Trade with your eyes open.</h2>
+
             <p>
               This prototype does not verify sellers, inspect products,
               hold payments, or guarantee transactions.
@@ -1000,7 +1545,7 @@ function App() {
           <div
             ref={dialogRef}
             className={`modal${
-              modal.type === "sell"
+              modal.type === "sell" || modal.type === "edit"
                 ? " form-modal"
                 : modal.type !== "product"
                   ? " small-modal"
@@ -1031,38 +1576,70 @@ function App() {
                   <div className="product-category">
                     {selectedProduct.category}
                   </div>
+
                   <h2 id="modal-title">{modalTitle}</h2>
+
                   <div className="detail-price">
                     {formatPrice(selectedProduct.price)}
                   </div>
+
                   <p className="product-location">
                     <MapPin size={15} />
                     {selectedProduct.location}
                   </p>
+
                   <p>{selectedProduct.description}</p>
 
                   <div className="detail-seller">
                     <div className="seller-avatar">
                       <UserRound size={20} />
                     </div>
+
                     <div>
                       <strong>{selectedProduct.seller}</strong>
                       <small>Identity not verified</small>
                     </div>
                   </div>
 
-                  <button
-                    className="primary-wide"
-                    onClick={() =>
-                      showNotice(
-                        "Messaging is not connected",
-                        "No message has been sent. This demonstration does not connect you to a seller."
-                      )
-                    }
-                  >
-                    <MessageCircle size={17} />
-                    Contact seller — demo
-                  </button>
+                  {isOwnListing(selectedProduct) ? (
+                    <>
+                      <button
+                        className="primary-wide"
+                        onClick={() => openEditForm(selectedProduct)}
+                      >
+                        <Pencil size={17} />
+                        Edit your listing
+                      </button>
+
+                      <button
+                        className="secondary-wide"
+                        onClick={() =>
+                          handleDeleteListing(selectedProduct)
+                        }
+                        disabled={
+                          deletingProductId === selectedProduct.id
+                        }
+                      >
+                        <Trash2 size={17} />
+                        {deletingProductId === selectedProduct.id
+                          ? "Deleting…"
+                          : "Delete listing"}
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      className="primary-wide"
+                      onClick={() =>
+                        showNotice(
+                          "Messaging is not connected",
+                          "No message has been sent. This demonstration does not connect you to a seller."
+                        )
+                      }
+                    >
+                      <MessageCircle size={17} />
+                      Contact seller — demo
+                    </button>
+                  )}
 
                   <button
                     className="secondary-wide"
@@ -1077,22 +1654,25 @@ function App() {
                           : "none"
                       }
                     />
+
                     {saved.includes(selectedProduct.id)
                       ? "Remove from saved"
                       : "Save listing"}
                   </button>
 
-                  <button
-                    className="report-link"
-                    onClick={() =>
-                      showNotice(
-                        "Reporting is not connected",
-                        "No report has been submitted. This button is a placeholder for a future reporting feature."
-                      )
-                    }
-                  >
-                    <Flag size={14} /> Report listing — demo
-                  </button>
+                  {!isOwnListing(selectedProduct) && (
+                    <button
+                      className="report-link"
+                      onClick={() =>
+                        showNotice(
+                          "Reporting is not connected",
+                          "No report has been submitted. This button is a placeholder for a future reporting feature."
+                        )
+                      }
+                    >
+                      <Flag size={14} /> Report listing — demo
+                    </button>
+                  )}
 
                   <p className="modal-disclaimer">
                     Demonstration listing only. Photos are illustrative.
@@ -1108,24 +1688,35 @@ function App() {
                 <div className="seller-profile-icon">
                   <UserRound size={35} />
                 </div>
+
                 <h2 id="modal-title">{modalTitle}</h2>
-                <p><strong>{selectedProduct.seller}</strong></p>
+
+                <p>
+                  <strong>{selectedProduct.seller}</strong>
+                </p>
+
                 <p className="product-location">
                   <MapPin size={15} />
                   {selectedProduct.location}
                 </p>
+
                 <div className="profile-status">
                   <UserRound size={18} />
                   Demonstration profile — identity not verified
                 </div>
+
                 <p className="form-intro">
                   This listing is not linked to a verified seller account.
                   No trading history or reviews are available.
                 </p>
+
                 <button
                   className="primary-wide"
                   onClick={() =>
-                    setModal({ type: "product", product: selectedProduct })
+                    setModal({
+                      type: "product",
+                      product: selectedProduct,
+                    })
                   }
                 >
                   View listing <ChevronRight size={17} />
@@ -1138,26 +1729,47 @@ function App() {
                 <div className="seller-profile-icon">
                   <UserRound size={35} />
                 </div>
+
                 <h2 id="modal-title">{modalTitle}</h2>
 
                 {user ? (
                   <>
-                    <p><strong>{displayName}</strong></p>
+                    <p>
+                      <strong>{displayName}</strong>
+                    </p>
+
                     <p
                       className="form-intro"
                       style={{ overflowWrap: "anywhere" }}
                     >
                       {user.email}
                     </p>
+
                     <div className="profile-status">
                       <UserRound size={18} />
                       Signed in
                     </div>
+
                     <p className="modal-disclaimer">
-                      Signing in does not verify seller identity or make
-                      the demonstration listings real. Listings and
-                      favourites are not saved to your account yet.
+                      Your listings are saved to the SafeTrade database.
+                      Seller identity and products are not independently
+                      verified. Favourites are currently saved only for
+                      this page session.
                     </p>
+
+                    <button
+                      className="primary-wide"
+                      onClick={() => {
+                        setModal(null);
+                        setMyListingsOnly(true);
+                        setSavedOnly(false);
+                        scrollToMarketplace();
+                      }}
+                    >
+                      <ShoppingBag size={17} />
+                      My Listings ({myListingsCount})
+                    </button>
+
                     <button
                       className="primary-wide"
                       onClick={handleSignOut}
@@ -1172,6 +1784,7 @@ function App() {
                     <p className="form-intro">
                       You are not currently signed in.
                     </p>
+
                     <button className="primary-wide" onClick={openAuth}>
                       <UserRound size={17} />
                       Login / Register
@@ -1181,13 +1794,20 @@ function App() {
               </>
             )}
 
-            {modal.type === "sell" && (
+            {(modal.type === "sell" || modal.type === "edit") && (
               <>
-                <span className="eyebrow">DEMONSTRATION ONLY</span>
+                <span className="eyebrow">
+                  {modal.type === "edit"
+                    ? "MANAGE YOUR LISTING"
+                    : "SELL ON SAFETRADE"}
+                </span>
+
                 <h2 id="modal-title">{modalTitle}</h2>
+
                 <p className="form-intro">
-                  Test the listing form. Your item will appear only in
-                  this page session and will disappear on refresh.
+                  {modal.type === "edit"
+                    ? "Update your product details and manage its photo."
+                    : "Add your item to the marketplace. You must be signed in to publish a listing."}
                 </p>
 
                 <form onSubmit={submitListing}>
@@ -1283,11 +1903,99 @@ function App() {
                     />
                   </label>
 
+                  <label>
+                    Product photo (optional)
+                    <input
+                      ref={imageInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={handleImageChange}
+                    />
+                  </label>
+
+                  {modal.type === "edit" &&
+                    !imagePreview &&
+                    !removeExistingImage &&
+                    modal.product?.image && (
+                      <div
+                        style={{
+                          marginTop: "10px",
+                          marginBottom: "16px",
+                        }}
+                      >
+                        <p className="form-intro">Current product photo</p>
+
+                        <img
+                          src={modal.product.image}
+                          alt="Current product"
+                          style={{
+                            display: "block",
+                            width: "100%",
+                            maxHeight: "220px",
+                            objectFit: "contain",
+                            borderRadius: "12px",
+                            background: "#f1f5f2",
+                          }}
+                        />
+
+                        <button
+                          type="button"
+                          onClick={removeSelectedImage}
+                          disabled={listingSubmitting}
+                          style={{ marginTop: "8px" }}
+                        >
+                          Remove current photo
+                        </button>
+                      </div>
+                    )}
+
+                  {imagePreview && (
+                    <div
+                      style={{
+                        marginTop: "10px",
+                        marginBottom: "16px",
+                      }}
+                    >
+                      <p className="form-intro">New photo preview</p>
+
+                      <img
+                        src={imagePreview}
+                        alt="Preview of the product being listed"
+                        style={{
+                          display: "block",
+                          width: "100%",
+                          maxHeight: "220px",
+                          objectFit: "contain",
+                          borderRadius: "12px",
+                          background: "#f1f5f2",
+                        }}
+                      />
+
+                      <button
+                        type="button"
+                        onClick={removeSelectedImage}
+                        disabled={listingSubmitting}
+                        style={{ marginTop: "8px" }}
+                      >
+                        Remove photo
+                      </button>
+                    </div>
+                  )}
+
+                  {modal.type === "edit" &&
+                    removeExistingImage &&
+                    !imagePreview && (
+                      <p className="form-intro">
+                        The existing photo will be removed when you save.
+                      </p>
+                    )}
+
                   <div className="form-note">
                     <ShieldCheck size={17} />
-                    This does not publish an advertisement, upload photos,
-                    or save anything to Supabase. Do not enter private
-                    contact or payment information.
+                    Add one JPG, PNG, or WEBP photo (maximum 5 MB). Your
+                    photo and listing will be saved to SafeTrade. Listings
+                    are not independently verified. Do not enter private
+                    contact or payment information in the description.
                   </div>
 
                   {formError && (
@@ -1299,9 +2007,22 @@ function App() {
                     </p>
                   )}
 
-                  <button className="primary-wide" type="submit">
-                    <Plus size={17} />
-                    Add demonstration listing
+                  <button
+                    className="primary-wide"
+                    type="submit"
+                    disabled={listingSubmitting}
+                  >
+                    {modal.type === "edit" ? (
+                      <Pencil size={17} />
+                    ) : (
+                      <Plus size={17} />
+                    )}
+
+                    {listingSubmitting
+                      ? "Saving…"
+                      : modal.type === "edit"
+                        ? "Save changes"
+                        : "Publish listing"}
                   </button>
                 </form>
               </>
@@ -1312,8 +2033,11 @@ function App() {
                 <div className="seller-profile-icon">
                   <MessageCircle size={30} />
                 </div>
+
                 <h2 id="modal-title">{modalTitle}</h2>
+
                 <p className="form-intro">{modal.text}</p>
+
                 <button className="primary-wide" onClick={closeModal}>
                   Close
                 </button>
