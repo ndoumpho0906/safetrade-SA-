@@ -1,65 +1,100 @@
+
 import { useEffect, useRef, useState } from "react";
 import {
-  Search, ShieldCheck, MessageCircle, Menu, X, MapPin, Heart,
-  ShoppingBag, UserRound, Plus, ChevronRight, Flag, CheckCircle,
-  LogOut, Pencil, Trash2, Send, Inbox, Save, ArrowLeft,
+  Search,
+  ShieldCheck,
+  MessageCircle,
+  Menu,
+  X,
+  MapPin,
+  Heart,
+  ShoppingBag,
+  UserRound,
+  Plus,
+  ChevronRight,
+  Flag,
+  CheckCircle,
+  LogOut,
+  Pencil,
+  Trash2,
+  Send,
+  Inbox,
+  Save,
+  ArrowLeft,
 } from "lucide-react";
 import Auth from "./Auth";
 import { supabase } from "./supabaseClient";
 import "./App.css";
 
 const categories = [
-  "All", "Electronics", "Food & Groceries", "Fashion", "Furniture",
-  "Home & Garden", "Beauty & Personal Care", "Vehicles", "Property",
-  "Books & Stationery", "Sports & Outdoors", "Baby & Kids",
-  "Agriculture & Farming", "Tools & Equipment", "Services", "Other",
+  "All",
+  "Electronics",
+  "Food & Groceries",
+  "Fashion",
+  "Furniture",
+  "Home & Garden",
+  "Beauty & Personal Care",
+  "Vehicles",
+  "Property",
+  "Books & Stationery",
+  "Sports & Outdoors",
+  "Baby & Kids",
+  "Agriculture & Farming",
+  "Tools & Equipment",
+  "Services",
+  "Other",
 ];
 
 const reportReasons = [
-  "Suspicious listing", "Potential scam", "Prohibited item",
-  "Misleading information", "Inappropriate content", "Other",
+  "Suspicious listing",
+  "Potential scam",
+  "Prohibited item",
+  "Misleading information",
+  "Inappropriate content",
+  "Other",
 ];
 
 const emptyProduct = {
-  name: "", category: "Electronics", price: "", seller: "",
-  location: "", description: "",
+  name: "",
+  category: "Electronics",
+  price: "",
+  seller: "",
+  location: "",
+  description: "",
 };
 
 const emptyProfile = {
-  display_name: "", location: "", bio: "", avatar_url: "",
+  display_name: "",
+  location: "",
+  bio: "",
+  avatar_url: "",
 };
 
 const steps = [
   {
     title: "Discover",
-    text: "Browse listings published by registered SafeTrade users.",
+    text: "Browse real listings published by registered SafeTrade users.",
     Icon: Search,
   },
   {
     title: "Review the seller",
-    text: "Read public seller profiles and ask questions before buying.",
+    text: "Read the seller's public profile and ask questions before buying.",
     Icon: UserRound,
   },
   {
     title: "Connect",
-    text: "Contact sellers through private conversations.",
+    text: "Contact sellers through private conversations on SafeTrade.",
     Icon: MessageCircle,
   },
   {
     title: "Trade carefully",
-    text: "Meet safely, inspect items and agree on payment arrangements.",
+    text: "Meet safely, inspect items and agree on payment arrangements carefully.",
     Icon: ShieldCheck,
   },
 ];
 
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
-const allowedImageTypes = ["image/jpeg", "image/png", "image/webp"];
-
 function formatPrice(value) {
-  const number = Number(value);
-  if (!Number.isFinite(number)) return "Price unavailable";
-
-  return `R ${number.toLocaleString("en-ZA", {
+  return `R ${Number(value).toLocaleString("en-ZA", {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   })}`;
@@ -68,10 +103,7 @@ function formatPrice(value) {
 function formatDate(value) {
   if (!value) return "";
 
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-
-  return date.toLocaleDateString("en-ZA", {
+  return new Date(value).toLocaleDateString("en-ZA", {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -81,10 +113,7 @@ function formatDate(value) {
 function formatDateTime(value) {
   if (!value) return "";
 
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-
-  return date.toLocaleString("en-ZA", {
+  return new Date(value).toLocaleString("en-ZA", {
     day: "numeric",
     month: "short",
     hour: "2-digit",
@@ -107,25 +136,14 @@ function getProductImagePath(imageUrl) {
   }
 }
 
-function isValidHttpsUrl(value) {
-  if (!value) return true;
-
-  try {
-    const parsed = new URL(value);
-    return parsed.protocol === "https:" && Boolean(parsed.hostname);
-  } catch {
-    return false;
-  }
-}
-
 function ProductImage({ product }) {
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     setFailed(false);
-  }, [product?.image]);
+  }, [product.image]);
 
-  if (!product?.image || failed) {
+  if (!product.image || failed) {
     return (
       <span className="image-placeholder">
         <ShoppingBag size={38} />
@@ -136,7 +154,7 @@ function ProductImage({ product }) {
   return (
     <img
       src={product.image}
-      alt={product.name || "Marketplace product"}
+      alt={product.name}
       loading="lazy"
       onError={() => setFailed(true)}
     />
@@ -184,7 +202,6 @@ function App() {
 
   const [profileForm, setProfileForm] = useState({ ...emptyProfile });
   const [profileSaving, setProfileSaving] = useState(false);
-
   const [reportReason, setReportReason] = useState(reportReasons[0]);
   const [reportDetails, setReportDetails] = useState("");
   const [reportSubmitting, setReportSubmitting] = useState(false);
@@ -194,15 +211,9 @@ function App() {
   const closeButtonRef = useRef(null);
   const messageEndRef = useRef(null);
 
-  // Request identifiers prevent older requests overwriting newer state.
-  const productRequestRef = useRef(0);
-  const savedRequestRef = useRef(0);
-  const conversationRequestRef = useRef(0);
-  const messageRequestRef = useRef(0);
-  const profileRequestRef = useRef(0);
-
-  const user = session?.user;
   const overlayOpen = Boolean(modal || showAuth);
+  const user = session?.user;
+
   const ownProfile = user ? profiles[user.id] : null;
 
   const displayName =
@@ -223,15 +234,6 @@ function App() {
   }
 
   function closeModal() {
-    if (
-      listingSubmitting ||
-      profileSaving ||
-      reportSubmitting ||
-      messageSending
-    ) {
-      return;
-    }
-
     setModal(null);
     setFormError("");
     setReportDetails("");
@@ -258,258 +260,187 @@ function App() {
   }
 
   async function loadProducts() {
-    const requestId = ++productRequestRef.current;
-
     setProductsLoading(true);
     setProductsError("");
 
-    try {
-      const { data, error } = await supabase
-        .from("products")
-        .select("*")
-        .order("created_at", { ascending: false });
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-      if (requestId !== productRequestRef.current) return;
-
-      if (error) throw error;
-
-      const loaded = (data || []).map((product) => ({
-        ...product,
-        price: Number(product.price),
-        image: product.image || "",
-      }));
-
-      setProducts(loaded);
+    if (error) {
+      console.error("Error loading products:", error.message);
+      setProductsError(error.message);
       setProductsLoading(false);
+      return;
+    }
 
-      const sellerIds = [
-        ...new Set(loaded.map((product) => product.seller_id).filter(Boolean)),
-      ];
+    const loadedProducts = (data ?? []).map((product) => ({
+      ...product,
+      price: Number(product.price),
+      image: product.image || "",
+    }));
 
-      if (!sellerIds.length) return;
+    setProducts(loadedProducts);
+    setProductsLoading(false);
 
+    const sellerIds = [
+      ...new Set(
+        loadedProducts
+          .map((product) => product.seller_id)
+          .filter(Boolean)
+      ),
+    ];
+
+    if (sellerIds.length > 0) {
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
-        .select("user_id, display_name, location, bio, avatar_url, created_at")
+        .select("user_id, display_name, location, bio, avatar_url")
         .in("user_id", sellerIds);
 
-      if (
-        requestId !== productRequestRef.current ||
-        profileError
-      ) {
-        return;
-      }
+      if (!profileError) {
+        setProfiles((current) => {
+          const next = { ...current };
 
-      setProfiles((current) => {
-        const next = { ...current };
+          for (const profile of profileData ?? []) {
+            next[profile.user_id] = profile;
+          }
 
-        (profileData || []).forEach((profile) => {
-          next[profile.user_id] = profile;
+          return next;
         });
-
-        return next;
-      });
-    } catch (error) {
-      if (requestId !== productRequestRef.current) return;
-
-      console.error("Error loading products:", error);
-      setProductsError("Listings could not be loaded. Please try again.");
-      setProductsLoading(false);
-    }
-  }
-
-  async function loadOwnProfile(currentUser) {
-    if (!currentUser) return;
-
-    const requestId = ++profileRequestRef.current;
-
-    try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("user_id, display_name, location, bio, avatar_url, created_at")
-        .eq("user_id", currentUser.id)
-        .maybeSingle();
-
-      if (requestId !== profileRequestRef.current) return;
-
-      if (error) throw error;
-
-      if (data) {
-        setProfiles((current) => ({
-          ...current,
-          [currentUser.id]: data,
-        }));
-      }
-    } catch (error) {
-      if (requestId === profileRequestRef.current) {
-        console.error("Could not load profile:", error);
       }
     }
   }
 
-  async function loadSavedProducts(currentUser = user) {
-    const requestId = ++savedRequestRef.current;
-
-    if (!currentUser) {
+  async function loadSavedProducts() {
+    if (!user) {
       setSaved([]);
-      setSavedLoading(false);
       return;
     }
 
     setSavedLoading(true);
 
-    try {
-      const { data, error } = await supabase
-        .from("saved_products")
-        .select("product_id")
-        .eq("user_id", currentUser.id);
+    const { data, error } = await supabase
+      .from("saved_products")
+      .select("product_id")
+      .eq("user_id", user.id);
 
-      if (requestId !== savedRequestRef.current) return;
-
-      if (error) throw error;
-
-      setSaved((data || []).map((item) => item.product_id));
-    } catch (error) {
-      if (requestId !== savedRequestRef.current) return;
-
-      console.error("Could not load saved products:", error);
+    if (error) {
+      console.error("Could not load saved products:", error.message);
       showNotice(
         "Could not load favourites",
         "Your saved listings could not be loaded. Please try again."
       );
-    } finally {
-      if (requestId === savedRequestRef.current) {
-        setSavedLoading(false);
-      }
+    } else {
+      setSaved((data ?? []).map((item) => item.product_id));
     }
+
+    setSavedLoading(false);
   }
 
-  async function loadConversations(currentUser = user) {
-    const requestId = ++conversationRequestRef.current;
-
-    if (!currentUser) {
+  async function loadConversations() {
+    if (!user) {
       setConversations([]);
       return;
     }
 
-    try {
-      const { data, error } = await supabase
-        .from("conversations")
-        .select("id, product_id, buyer_id, seller_id, created_at")
-        .order("created_at", { ascending: false });
+    const { data, error } = await supabase
+      .from("conversations")
+      .select("id, product_id, buyer_id, seller_id, created_at")
+      .order("created_at", { ascending: false });
 
-      if (requestId !== conversationRequestRef.current) return;
-
-      if (error) throw error;
-
-      const rows = data || [];
-
-      const productIds = [
-        ...new Set(rows.map((item) => item.product_id).filter(Boolean)),
-      ];
-
-      const participantIds = [
-        ...new Set(
-          rows.flatMap((item) => [item.buyer_id, item.seller_id]).filter(Boolean)
-        ),
-      ];
-
-      const [productResult, profileResult] = await Promise.all([
-        productIds.length
-          ? supabase
-              .from("products")
-              .select("id, name, image, price")
-              .in("id", productIds)
-          : Promise.resolve({ data: [], error: null }),
-
-        participantIds.length
-          ? supabase
-              .from("profiles")
-              .select("user_id, display_name")
-              .in("user_id", participantIds)
-          : Promise.resolve({ data: [], error: null }),
-      ]);
-
-      if (requestId !== conversationRequestRef.current) return;
-
-      if (productResult.error) throw productResult.error;
-      if (profileResult.error) throw profileResult.error;
-
-      const productMap = Object.fromEntries(
-        (productResult.data || []).map((item) => [item.id, item])
-      );
-
-      const profileMap = Object.fromEntries(
-        (profileResult.data || []).map((item) => [item.user_id, item])
-      );
-
-      setConversations(
-        rows.map((conversation) => {
-          const buyerIsCurrentUser =
-            conversation.buyer_id === currentUser.id;
-
-          const otherId = buyerIsCurrentUser
-            ? conversation.seller_id
-            : conversation.buyer_id;
-
-          return {
-            ...conversation,
-            product: productMap[conversation.product_id] || null,
-            otherUserId: otherId,
-            otherUserName:
-              profileMap[otherId]?.display_name ||
-              (buyerIsCurrentUser ? "Seller" : "Buyer"),
-          };
-        })
-      );
-    } catch (error) {
-      if (requestId !== conversationRequestRef.current) return;
-
-      console.error("Could not load conversations:", error);
-
+    if (error) {
+      console.error("Could not load conversations:", error.message);
       showNotice(
         "Could not load messages",
         "Your conversations could not be loaded. Please try again."
       );
+      return;
     }
+
+    const conversationRows = data ?? [];
+    const productIds = [
+      ...new Set(conversationRows.map((item) => item.product_id)),
+    ];
+    const participantIds = [
+      ...new Set(
+        conversationRows.flatMap((item) => [
+          item.buyer_id,
+          item.seller_id,
+        ])
+      ),
+    ];
+
+    const [productResult, profileResult] = await Promise.all([
+      productIds.length
+        ? supabase
+            .from("products")
+            .select("id, name, image, price")
+            .in("id", productIds)
+        : Promise.resolve({ data: [], error: null }),
+      participantIds.length
+        ? supabase
+            .from("profiles")
+            .select("user_id, display_name")
+            .in("user_id", participantIds)
+        : Promise.resolve({ data: [], error: null }),
+    ]);
+
+    const productMap = Object.fromEntries(
+      (productResult.data ?? []).map((item) => [item.id, item])
+    );
+
+    const profileMap = Object.fromEntries(
+      (profileResult.data ?? []).map((item) => [
+        item.user_id,
+        item,
+      ])
+    );
+
+    setConversations(
+      conversationRows.map((conversation) => ({
+        ...conversation,
+        product: productMap[conversation.product_id] || null,
+        buyer: profileMap[conversation.buyer_id] || null,
+        seller: profileMap[conversation.seller_id] || null,
+        otherUserId:
+          conversation.buyer_id === user.id
+            ? conversation.seller_id
+            : conversation.buyer_id,
+        otherUserName:
+          conversation.buyer_id === user.id
+            ? profileMap[conversation.seller_id]?.display_name ||
+              "Seller"
+            : profileMap[conversation.buyer_id]?.display_name ||
+              "Buyer",
+      }))
+    );
   }
 
   async function loadMessages(conversationId) {
     if (!conversationId) return;
 
-    const requestId = ++messageRequestRef.current;
-
     setMessagesLoading(true);
 
-    try {
-      const { data, error } = await supabase
-        .from("messages")
-        .select("id, conversation_id, sender_id, body, created_at")
-        .eq("conversation_id", conversationId)
-        .order("created_at", { ascending: true });
+    const { data, error } = await supabase
+      .from("messages")
+      .select("id, conversation_id, sender_id, body, created_at")
+      .eq("conversation_id", conversationId)
+      .order("created_at", { ascending: true });
 
-      if (requestId !== messageRequestRef.current) return;
-
-      if (error) throw error;
-
-      setMessages(data || []);
-    } catch (error) {
-      if (requestId !== messageRequestRef.current) return;
-
-      console.error("Could not load messages:", error);
-
+    if (error) {
+      console.error("Could not load messages:", error.message);
       showNotice(
         "Could not load messages",
         "The conversation could not be loaded. Please try again."
       );
-    } finally {
-      if (requestId === messageRequestRef.current) {
-        setMessagesLoading(false);
-      }
+    } else {
+      setMessages(data ?? []);
     }
+
+    setMessagesLoading(false);
   }
 
-  // Authentication listener.
   useEffect(() => {
     let active = true;
 
@@ -529,15 +460,9 @@ function App() {
       }
 
       if (event === "SIGNED_OUT") {
-        savedRequestRef.current++;
-        conversationRequestRef.current++;
-        messageRequestRef.current++;
-        profileRequestRef.current++;
-
         setSaved([]);
         setConversations([]);
         setMessages([]);
-        setProfiles({});
         setSavedOnly(false);
         setMyListingsOnly(false);
       }
@@ -550,7 +475,7 @@ function App() {
 
         if (error) setAuthError(error.message);
 
-        setSession(data?.session || null);
+        setSession(data?.session ?? null);
         setAuthLoading(false);
       })
       .catch((error) => {
@@ -559,7 +484,6 @@ function App() {
         setAuthError(
           error.message || "Unable to check your login status."
         );
-
         setAuthLoading(false);
       });
 
@@ -571,35 +495,41 @@ function App() {
 
   useEffect(() => {
     loadProducts();
-
-    return () => {
-      productRequestRef.current++;
-    };
   }, []);
 
   useEffect(() => {
     if (!user) {
-      savedRequestRef.current++;
-      profileRequestRef.current++;
       setSaved([]);
-      return undefined;
+      return;
     }
 
-    loadSavedProducts(user);
-    loadOwnProfile(user);
+    loadSavedProducts();
 
-    return () => {
-      savedRequestRef.current++;
-      profileRequestRef.current++;
+    const loadOwnProfile = async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id, display_name, location, bio, avatar_url")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Could not load profile:", error.message);
+        return;
+      }
+
+      if (data) {
+        setProfiles((current) => ({
+          ...current,
+          [user.id]: data,
+        }));
+      }
     };
+
+    loadOwnProfile();
   }, [user?.id]);
 
-  // Load messages and subscribe to new messages for the active conversation.
   useEffect(() => {
-    if (
-      modal?.type !== "conversation" ||
-      !modal.conversationId
-    ) {
+    if (modal?.type !== "conversation" || !modal.conversationId) {
       return undefined;
     }
 
@@ -618,31 +548,18 @@ function App() {
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
-          setMessages((current) =>
-            current.some((item) => item.id === payload.new.id)
-              ? current
-              : [...current, payload.new].sort(
-                  (a, b) =>
-                    new Date(a.created_at) - new Date(b.created_at)
-                )
-          );
+          setMessages((current) => {
+            if (current.some((item) => item.id === payload.new.id)) {
+              return current;
+            }
+
+            return [...current, payload.new];
+          });
         }
       )
-      .subscribe((status) => {
-        if (
-          status === "CHANNEL_ERROR" ||
-          status === "TIMED_OUT"
-        ) {
-          console.error(
-            "Message realtime connection issue:",
-            status
-          );
-        }
-      });
+      .subscribe();
 
     return () => {
-      messageRequestRef.current++;
-      setMessagesLoading(false);
       supabase.removeChannel(channel);
     };
   }, [modal?.type, modal?.conversationId]);
@@ -656,20 +573,18 @@ function App() {
     });
   }, [messages, modal?.type]);
 
-  // Temporary image preview.
   useEffect(() => {
     if (!selectedImage) {
       setImagePreview("");
       return undefined;
     }
 
-    const url = URL.createObjectURL(selectedImage);
-    setImagePreview(url);
+    const previewUrl = URL.createObjectURL(selectedImage);
+    setImagePreview(previewUrl);
 
-    return () => URL.revokeObjectURL(url);
+    return () => URL.revokeObjectURL(previewUrl);
   }, [selectedImage]);
 
-  // Modal keyboard accessibility and focus management.
   useEffect(() => {
     if (!overlayOpen) return undefined;
 
@@ -688,17 +603,11 @@ function App() {
 
     function handleKeyDown(event) {
       if (event.key === "Escape") {
-        if (
-          !listingSubmitting &&
-          !profileSaving &&
-          !reportSubmitting &&
-          !messageSending
-        ) {
-          setModal(null);
-          setShowAuth(false);
-          setRecoveryMode(false);
-          setFormError("");
-        }
+        setModal(null);
+        setShowAuth(false);
+        setRecoveryMode(false);
+        setFormError("");
+        return;
       }
 
       if (event.key !== "Tab") return;
@@ -706,24 +615,24 @@ function App() {
       const controls = Array.from(
         dialogRef.current?.querySelectorAll(
           'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex="0"]'
-        ) || []
+        ) ?? []
       ).filter((element) => element.getClientRects().length > 0);
 
       if (!controls.length) return;
 
       const first = controls[0];
       const last = controls[controls.length - 1];
+      const focusInside = dialogRef.current?.contains(
+        document.activeElement
+      );
 
-      if (
-        event.shiftKey &&
-        document.activeElement === first
-      ) {
+      if (!focusInside) {
+        event.preventDefault();
+        first.focus();
+      } else if (event.shiftKey && document.activeElement === first) {
         event.preventDefault();
         last.focus();
-      } else if (
-        !event.shiftKey &&
-        document.activeElement === last
-      ) {
+      } else if (!event.shiftKey && document.activeElement === last) {
         event.preventDefault();
         first.focus();
       }
@@ -740,20 +649,12 @@ function App() {
         previousFocus.focus?.();
       }
     };
-  }, [
-    overlayOpen,
-    showAuth,
-    modal?.type,
-    listingSubmitting,
-    profileSaving,
-    reportSubmitting,
-    messageSending,
-  ]);
+  }, [overlayOpen, showAuth, modal?.type]);
 
   const normalizedSearch = search.trim().toLowerCase();
 
   const filteredProducts = products.filter((product) => {
-    const searchableText = [
+    const matchesSearch = [
       product.name,
       product.location,
       product.category,
@@ -761,10 +662,11 @@ function App() {
       product.seller,
     ]
       .join(" ")
-      .toLowerCase();
+      .toLowerCase()
+      .includes(normalizedSearch);
 
     return (
-      searchableText.includes(normalizedSearch) &&
+      matchesSearch &&
       (category === "All" || product.category === category) &&
       (!savedOnly || saved.includes(product.id)) &&
       (!myListingsOnly || isOwnListing(product))
@@ -777,9 +679,7 @@ function App() {
     setSelectedImage(null);
     setRemoveExistingImage(false);
 
-    if (imageInputRef.current) {
-      imageInputRef.current.value = "";
-    }
+    if (imageInputRef.current) imageInputRef.current.value = "";
 
     if (!user) {
       openAuth();
@@ -808,9 +708,7 @@ function App() {
     setSelectedImage(null);
     setRemoveExistingImage(false);
 
-    if (imageInputRef.current) {
-      imageInputRef.current.value = "";
-    }
+    if (imageInputRef.current) imageInputRef.current.value = "";
 
     setNewProduct({
       name: product.name || "",
@@ -832,16 +730,18 @@ function App() {
   }
 
   function handleImageChange(event) {
-    const file = event.target.files?.[0];
+    const file = event.target.files?.[0] || null;
     if (!file) return;
 
-    if (!allowedImageTypes.includes(file.type)) {
-      setFormError("Please choose a JPG, PNG or WEBP image.");
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+
+    if (!allowedTypes.includes(file.type)) {
+      setFormError("Please choose a JPG, PNG, or WEBP image.");
       event.target.value = "";
       return;
     }
 
-    if (file.size > MAX_IMAGE_SIZE) {
+    if (file.size > 5 * 1024 * 1024) {
       setFormError("The product photo must be 5 MB or smaller.");
       event.target.value = "";
       return;
@@ -859,9 +759,7 @@ function App() {
       setRemoveExistingImage(true);
     }
 
-    if (imageInputRef.current) {
-      imageInputRef.current.value = "";
-    }
+    if (imageInputRef.current) imageInputRef.current.value = "";
   }
 
   async function toggleSaved(productId) {
@@ -922,6 +820,7 @@ function App() {
     setFormError("");
 
     if (!user) {
+      setModal(null);
       openAuth();
       return;
     }
@@ -929,66 +828,24 @@ function App() {
     const isEditing = modal?.type === "edit";
     const existingProduct = isEditing ? modal.product : null;
 
-    if (
-      isEditing &&
-      (!existingProduct || !isOwnListing(existingProduct))
-    ) {
-      setFormError(
-        "You are not authorised to edit this listing."
-      );
+    if (isEditing && !isOwnListing(existingProduct)) {
+      setFormError("You are not authorised to edit this listing.");
       return;
     }
 
+    const price = Number(newProduct.price);
     const name = newProduct.name.trim();
     const seller = newProduct.seller.trim();
     const location = newProduct.location.trim();
     const description = newProduct.description.trim();
-    const price = Number(newProduct.price);
 
     if (!name || !seller || !location) {
       setFormError("Please complete the required fields.");
       return;
     }
 
-    if (
-      name.length > 100 ||
-      seller.length > 60 ||
-      location.length > 80 ||
-      description.length > 2000
-    ) {
-      setFormError(
-        "One or more fields exceed the permitted length."
-      );
-      return;
-    }
-
-    if (
-      !categories.includes(newProduct.category) ||
-      newProduct.category === "All"
-    ) {
-      setFormError("Please select a valid listing category.");
-      return;
-    }
-
-    if (
-      !Number.isFinite(price) ||
-      price <= 0 ||
-      price > 1000000000
-    ) {
-      setFormError(
-        "Please enter a valid price greater than zero."
-      );
-      return;
-    }
-
-    if (
-      selectedImage &&
-      (
-        !allowedImageTypes.includes(selectedImage.type) ||
-        selectedImage.size > MAX_IMAGE_SIZE
-      )
-    ) {
-      setFormError("Please select a valid image of 5 MB or smaller.");
+    if (!Number.isFinite(price) || price <= 0) {
+      setFormError("Please enter a price greater than zero.");
       return;
     }
 
@@ -997,26 +854,28 @@ function App() {
     let uploadedImagePath = null;
 
     try {
-      let imageUrl = isEditing
-        ? existingProduct.image || ""
-        : "";
+      let imageUrl = isEditing ? existingProduct.image || "" : "";
 
       if (removeExistingImage) {
         imageUrl = "";
       }
 
       if (selectedImage) {
-        const extension =
+        const fileExtension =
           selectedImage.name.split(".").pop()?.toLowerCase() || "jpg";
 
         const safeExtension = [
-          "jpg", "jpeg", "png", "webp",
-        ].includes(extension)
-          ? extension
+          "jpg",
+          "jpeg",
+          "png",
+          "webp",
+        ].includes(fileExtension)
+          ? fileExtension
           : "jpg";
 
-        uploadedImagePath =
-          `${user.id}/${crypto.randomUUID()}.${safeExtension}`;
+        uploadedImagePath = `${user.id}/${Date.now()}-${Math.random()
+          .toString(36)
+          .slice(2)}.${safeExtension}`;
 
         const { error: uploadError } = await supabase.storage
           .from("product-images")
@@ -1027,15 +886,15 @@ function App() {
           });
 
         if (uploadError) {
-          throw new Error(
-            `Photo upload failed: ${uploadError.message}`
-          );
+          uploadedImagePath = null;
+          throw new Error(`Photo upload failed: ${uploadError.message}`);
         }
 
-        imageUrl = supabase.storage
+        const { data: publicImage } = supabase.storage
           .from("product-images")
-          .getPublicUrl(uploadedImagePath)
-          .data.publicUrl;
+          .getPublicUrl(uploadedImagePath);
+
+        imageUrl = publicImage.publicUrl;
       }
 
       const listingToSave = {
@@ -1049,77 +908,73 @@ function App() {
         description: description || "No description provided.",
       };
 
-      const result = isEditing
-        ? await supabase
-            .from("products")
-            .update(listingToSave)
-            .eq("id", existingProduct.id)
-            .eq("seller_id", user.id)
-            .select()
-            .single()
-        : await supabase
-            .from("products")
-            .insert(listingToSave)
-            .select()
-            .single();
+      let data;
+      let error;
 
-      if (result.error) throw result.error;
+      if (isEditing) {
+        const result = await supabase
+          .from("products")
+          .update(listingToSave)
+          .eq("id", existingProduct.id)
+          .eq("seller_id", user.id)
+          .select()
+          .single();
 
-      if (!result.data) {
-        throw new Error("The listing could not be saved.");
+        data = result.data;
+        error = result.error;
+      } else {
+        const result = await supabase
+          .from("products")
+          .insert(listingToSave)
+          .select()
+          .single();
+
+        data = result.data;
+        error = result.error;
       }
 
+      if (error) throw error;
+      if (!data) throw new Error("The listing could not be saved.");
+
       const savedProduct = {
-        ...result.data,
-        price: Number(result.data.price),
-        image: result.data.image || "",
+        ...data,
+        price: Number(data.price),
+        image: data.image || "",
       };
 
       setProducts((current) =>
         isEditing
           ? current.map((item) =>
-              item.id === savedProduct.id
-                ? savedProduct
-                : item
+              item.id === savedProduct.id ? savedProduct : item
             )
           : [
               savedProduct,
-              ...current.filter(
-                (item) => item.id !== savedProduct.id
-              ),
+              ...current.filter((item) => item.id !== savedProduct.id),
             ]
       );
 
-      // Remove the old photo only after the database update succeeds.
-      if (
-        isEditing &&
-        (selectedImage || removeExistingImage)
-      ) {
-        const oldPath = getProductImagePath(existingProduct.image);
+      if (isEditing && (selectedImage || removeExistingImage)) {
+        const oldImagePath = getProductImagePath(existingProduct.image);
 
-        if (oldPath) {
+        if (oldImagePath) {
           const { error: removeError } = await supabase.storage
             .from("product-images")
-            .remove([oldPath]);
+            .remove([oldImagePath]);
 
           if (removeError) {
             console.warn(
-              "Old image could not be removed:",
+              "The listing was saved, but the previous photo could not be removed:",
               removeError.message
             );
           }
         }
       }
 
-      uploadedImagePath = null;
-
       setNewProduct({ ...emptyProduct });
       setSelectedImage(null);
       setRemoveExistingImage(false);
 
-      if (imageInputRef.current) {
-        imageInputRef.current.value = "";
-      }
+      if (imageInputRef.current) imageInputRef.current.value = "";
 
       clearFilters();
       setModal(null);
@@ -1132,23 +987,19 @@ function App() {
       );
     } catch (error) {
       if (uploadedImagePath) {
-        const { error: cleanupError } = await supabase.storage
-          .from("product-images")
-          .remove([uploadedImagePath]);
-
-        if (cleanupError) {
-          console.warn(
-            "Uploaded image cleanup failed:",
-            cleanupError.message
-          );
+        try {
+          await supabase.storage
+            .from("product-images")
+            .remove([uploadedImagePath]);
+        } catch (cleanupError) {
+          console.warn("Could not clean up the uploaded photo:", cleanupError);
         }
       }
 
       console.error("Error saving listing:", error);
 
       setFormError(
-        error.message ||
-        "We could not save your listing. Please try again."
+        error.message || "We could not save your listing. Please try again."
       );
     } finally {
       setListingSubmitting(false);
@@ -1159,18 +1010,16 @@ function App() {
     if (!user || !isOwnListing(product)) {
       showNotice(
         "Permission denied",
-        "You can only delete your own listings."
+        "You can only delete listings belonging to your account."
       );
       return;
     }
 
-    if (
-      !window.confirm(
-        `Are you sure you want to delete "${product.name}"? This cannot be undone.`
-      )
-    ) {
-      return;
-    }
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${product.name}"? This action cannot be undone.`
+    );
+
+    if (!confirmed) return;
 
     setDeletingProductId(product.id);
 
@@ -1196,7 +1045,7 @@ function App() {
       );
 
       setSaved((current) =>
-        current.filter((id) => id !== product.id)
+        current.filter((item) => item !== product.id)
       );
 
       if (modal?.product?.id === product.id) {
@@ -1211,10 +1060,7 @@ function App() {
           .remove([imagePath]);
 
         if (imageError) {
-          console.warn(
-            "Photo removal failed:",
-            imageError.message
-          );
+          console.warn("Listing deleted, but photo removal failed:", imageError);
         }
       }
 
@@ -1235,17 +1081,16 @@ function App() {
   }
 
   async function openSellerProfile(product) {
-    const existingProfile =
-      profiles[product.seller_id] || null;
+    const profile = profiles[product.seller_id];
 
     setModal({
       type: "seller",
       product,
-      profile: existingProfile,
-      loading: !existingProfile,
+      profile: profile || null,
+      loading: !profile,
     });
 
-    if (!existingProfile && product.seller_id) {
+    if (!profile && product.seller_id) {
       const { data, error } = await supabase
         .from("profiles")
         .select("user_id, display_name, location, bio, avatar_url, created_at")
@@ -1257,18 +1102,21 @@ function App() {
           ...current,
           [data.user_id]: data,
         }));
-      }
 
-      setModal((current) =>
-        current?.type === "seller" &&
-        current.product?.id === product.id
-          ? {
-              ...current,
-              profile: data || null,
-              loading: false,
-            }
-          : current
-      );
+        setModal((current) =>
+          current?.type === "seller" &&
+          current.product?.id === product.id
+            ? { ...current, profile: data, loading: false }
+            : current
+        );
+      } else {
+        setModal((current) =>
+          current?.type === "seller" &&
+          current.product?.id === product.id
+            ? { ...current, loading: false }
+            : current
+        );
+      }
     }
   }
 
@@ -1304,42 +1152,20 @@ function App() {
       return;
     }
 
-    if (
-      display_name.length > 80 ||
-      location.length > 100 ||
-      bio.length > 500
-    ) {
-      setFormError(
-        "Please check the maximum permitted length of each field."
-      );
-      return;
-    }
-
-    if (!isValidHttpsUrl(avatar_url)) {
-      setFormError(
-        "The profile image address must be a valid HTTPS URL."
-      );
-      return;
-    }
-
     setProfileSaving(true);
     setFormError("");
 
     try {
-      const profileToSave = {
-        user_id: user.id,
-        display_name,
-        location: location || null,
-        bio: bio || null,
-        avatar_url: avatar_url || null,
-        updated_at: new Date().toISOString(),
-      };
-
       const { data, error } = await supabase
         .from("profiles")
-        .upsert(profileToSave, {
-          onConflict: "user_id",
+        .update({
+          display_name,
+          location: location || null,
+          bio: bio || null,
+          avatar_url: avatar_url || null,
+          updated_at: new Date().toISOString(),
         })
+        .eq("user_id", user.id)
         .select()
         .single();
 
@@ -1392,22 +1218,15 @@ function App() {
       if (error) throw error;
 
       if (!data) {
-        throw new Error(
-          "A conversation could not be created."
-        );
+        throw new Error("A conversation could not be created.");
       }
 
       setMessages([]);
       setMessageText("");
-
       setModal({
         type: "conversation",
         conversationId: data,
         product,
-        otherUserName:
-          profiles[product.seller_id]?.display_name ||
-          product.seller ||
-          "Seller",
       });
 
       loadConversations();
@@ -1427,13 +1246,8 @@ function App() {
       return;
     }
 
-    setModal({
-      type: "inbox",
-      loading: true,
-    });
-
-    await loadConversations(user);
-
+    setModal({ type: "inbox", loading: true });
+    await loadConversations();
     setModal((current) =>
       current?.type === "inbox"
         ? { ...current, loading: false }
@@ -1470,15 +1284,13 @@ function App() {
       return;
     }
 
-    const conversationId = modal.conversationId;
-
     setMessageSending(true);
 
     try {
       const { data, error } = await supabase
         .from("messages")
         .insert({
-          conversation_id: conversationId,
+          conversation_id: modal.conversationId,
           sender_id: user.id,
           body,
         })
@@ -1490,10 +1302,7 @@ function App() {
       setMessages((current) =>
         current.some((item) => item.id === data.id)
           ? current
-          : [...current, data].sort(
-              (a, b) =>
-                new Date(a.created_at) - new Date(b.created_at)
-            )
+          : [...current, data]
       );
 
       setMessageText("");
@@ -1519,30 +1328,16 @@ function App() {
 
     if (!modal?.product?.id) return;
 
-    if (!reportReasons.includes(reportReason)) {
-      setFormError("Please select a valid report reason.");
-      return;
-    }
-
-    if (reportDetails.trim().length > 2000) {
-      setFormError(
-        "Report details must be 2,000 characters or fewer."
-      );
-      return;
-    }
-
     setReportSubmitting(true);
     setFormError("");
 
     try {
-      const { error } = await supabase
-        .from("reports")
-        .insert({
-          product_id: modal.product.id,
-          reporter_id: user.id,
-          reason: reportReason,
-          details: reportDetails.trim() || null,
-        });
+      const { error } = await supabase.from("reports").insert({
+        product_id: modal.product.id,
+        reporter_id: user.id,
+        reason: reportReason,
+        details: reportDetails.trim() || null,
+      });
 
       if (error) throw error;
 
@@ -1551,7 +1346,7 @@ function App() {
 
       showNotice(
         "Report submitted",
-        "Thank you. Your report has been recorded. Submission does not mean the listing has already been reviewed or removed."
+        "Thank you. Your report has been recorded. This does not mean the listing has already been reviewed or removed."
       );
     } catch (error) {
       console.error("Could not submit report:", error);
@@ -1574,18 +1369,12 @@ function App() {
 
       if (error) throw error;
 
-      savedRequestRef.current++;
-      conversationRequestRef.current++;
-      messageRequestRef.current++;
-      profileRequestRef.current++;
-
       setSession(null);
       setModal(null);
       setShowAuth(false);
       setSaved([]);
       setConversations([]);
       setMessages([]);
-      setProfiles({});
       setSavedOnly(false);
       setMyListingsOnly(false);
       setMenuOpen(false);
@@ -1626,7 +1415,11 @@ function App() {
     <div className="app" id="home">
       <header className="header">
         <div className="nav-container">
-          <a className="brand" href="#home" aria-label="SafeTrade SA home">
+          <a
+            className="brand"
+            href="#home"
+            aria-label="SafeTrade SA home"
+          >
             <span className="brand-icon">
               <ShieldCheck size={23} />
             </span>
@@ -1643,9 +1436,11 @@ function App() {
             <a href="#marketplace" onClick={() => setMenuOpen(false)}>
               Marketplace
             </a>
+
             <a href="#how-it-works" onClick={() => setMenuOpen(false)}>
               How it works
             </a>
+
             <a href="#safety" onClick={() => setMenuOpen(false)}>
               Safety centre
             </a>
@@ -1653,11 +1448,14 @@ function App() {
             <button
               className="outline-button"
               disabled={authLoading}
-              onClick={() =>
-                user
-                  ? (setMenuOpen(false), setModal({ type: "account" }))
-                  : openAuth()
-              }
+              onClick={() => {
+                if (user) {
+                  setMenuOpen(false);
+                  setModal({ type: "account" });
+                } else {
+                  openAuth();
+                }
+              }}
             >
               <UserRound size={17} />
               {authLoading
@@ -1675,7 +1473,8 @@ function App() {
                 onClick={openInbox}
                 aria-label="Open messages"
               >
-                <MessageCircle size={17} /> Messages
+                <MessageCircle size={17} />
+                Messages
               </button>
             )}
 
@@ -1683,14 +1482,18 @@ function App() {
               className="saved-nav"
               aria-pressed={savedOnly}
               onClick={() => {
-                if (!user) return openAuth();
+                if (!user) {
+                  openAuth();
+                  return;
+                }
 
-                setSavedOnly((value) => !value);
+                setSavedOnly((current) => !current);
                 setMyListingsOnly(false);
                 scrollToMarketplace();
               }}
             >
-              <Heart size={17} /> Saved ({saved.length})
+              <Heart size={17} />
+              Saved ({saved.length})
             </button>
 
             <button className="sell-button" onClick={openSellForm}>
@@ -1702,7 +1505,7 @@ function App() {
               aria-label={menuOpen ? "Close menu" : "Open menu"}
               aria-expanded={menuOpen}
               aria-controls="main-navigation"
-              onClick={() => setMenuOpen((value) => !value)}
+              onClick={() => setMenuOpen((current) => !current)}
             >
               {menuOpen ? <X /> : <Menu />}
             </button>
@@ -1718,12 +1521,10 @@ function App() {
 
       <main>
         <section className="hero">
-          <div
-            className="hero-content"
-            style={{ textAlign: "left" }}
-          >
+          <div className="hero-content" style={{ textAlign: "left" }}>
             <span className="eyebrow">
-              <ShieldCheck size={15} /> SOUTH AFRICAN ONLINE MARKETPLACE
+              <ShieldCheck size={15} />
+              SOUTH AFRICAN ONLINE MARKETPLACE
             </span>
 
             <h1>
@@ -1734,8 +1535,8 @@ function App() {
 
             <p>
               Discover products listed by sellers across South Africa.
-              Connect with sellers, save your favourites and make informed
-              decisions before trading.
+              Connect with sellers, save your favourites and make
+              informed decisions before trading.
             </p>
 
             <form
@@ -1758,9 +1559,15 @@ function App() {
             </form>
 
             <div className="hero-trust">
-              <span><Search size={15} /> Browse products</span>
-              <span><Heart size={15} /> Save favourites</span>
-              <span><MessageCircle size={15} /> Contact sellers</span>
+              <span>
+                <Search size={15} /> Browse products
+              </span>
+              <span>
+                <Heart size={15} /> Save favourites
+              </span>
+              <span>
+                <MessageCircle size={15} /> Contact sellers
+              </span>
             </div>
           </div>
 
@@ -1780,7 +1587,6 @@ function App() {
                 <div className="floating-icon">
                   <ShieldCheck size={26} />
                 </div>
-
                 <div>
                   <strong>Make informed decisions</strong>
                   <small>Always check before you trade.</small>
@@ -1841,15 +1647,10 @@ function App() {
                     : "Discover listings"}
               </h2>
 
-              <p>
-                Explore products listed by users across South Africa.
-              </p>
+              <p>Explore products listed by users across South Africa.</p>
             </div>
 
-            <button
-              className="outline-button"
-              onClick={openSellForm}
-            >
+            <button className="outline-button" onClick={openSellForm}>
               <Plus size={17} /> Post a listing
             </button>
           </div>
@@ -1858,7 +1659,9 @@ function App() {
             {categories.map((item) => (
               <button
                 key={item}
-                className={`category-chip${category === item ? " active" : ""}`}
+                className={`category-chip${
+                  category === item ? " active" : ""
+                }`}
                 aria-pressed={category === item}
                 onClick={() => setCategory(item)}
               >
@@ -1870,9 +1673,12 @@ function App() {
               className={`category-chip${savedOnly ? " active" : ""}`}
               aria-pressed={savedOnly}
               onClick={() => {
-                if (!user) return openAuth();
+                if (!user) {
+                  openAuth();
+                  return;
+                }
 
-                setSavedOnly((value) => !value);
+                setSavedOnly((current) => !current);
                 setMyListingsOnly(false);
               }}
             >
@@ -1881,10 +1687,12 @@ function App() {
 
             {user && (
               <button
-                className={`category-chip${myListingsOnly ? " active" : ""}`}
+                className={`category-chip${
+                  myListingsOnly ? " active" : ""
+                }`}
                 aria-pressed={myListingsOnly}
                 onClick={() => {
-                  setMyListingsOnly((value) => !value);
+                  setMyListingsOnly((current) => !current);
                   setSavedOnly(false);
                 }}
               >
@@ -1895,9 +1703,7 @@ function App() {
 
           <div className="market-toolbar">
             <span className="result-count" aria-live="polite">
-              {savedLoading
-                ? "Loading favourites…"
-                : `${filteredProducts.length} listing${filteredProducts.length === 1 ? "" : "s"} found`}
+              {savedLoading ? "Loading favourites…" : `${filteredProducts.length} listing${filteredProducts.length === 1 ? "" : "s"} found`}
             </span>
 
             <div className="market-search">
@@ -1953,7 +1759,7 @@ function App() {
                 {myListingsOnly
                   ? "Your published listings will appear here."
                   : savedOnly
-                    ? "Use the heart button on a listing to save it."
+                    ? "Use the heart button on a listing to save it to your account."
                     : "Try another search or browse a different category."}
               </p>
 
@@ -1991,10 +1797,14 @@ function App() {
                         <ProductImage product={item} />
                       </button>
 
-                      <span className="condition-label">Live listing</span>
+                      <span className="condition-label">
+                        Live listing
+                      </span>
 
                       <button
-                        className={`heart-button${saved.includes(item.id) ? " saved" : ""}`}
+                        className={`heart-button${
+                          saved.includes(item.id) ? " saved" : ""
+                        }`}
                         onClick={() => toggleSaved(item.id)}
                         aria-label={
                           saved.includes(item.id)
@@ -2015,14 +1825,8 @@ function App() {
                       </button>
                     </div>
 
-                    <div
-                      className="product-info"
-                      style={{ textAlign: "left" }}
-                    >
-                      <div className="product-category">
-                        {item.category}
-                      </div>
-
+                    <div className="product-info" style={{ textAlign: "left" }}>
+                      <div className="product-category">{item.category}</div>
                       <h3>{item.name}</h3>
 
                       <div className="product-price">
@@ -2043,7 +1847,7 @@ function App() {
                         </button>
 
                         <span className="verified-tag">
-                          Public profile
+                          Seller profile
                         </span>
                       </div>
 
@@ -2125,10 +1929,7 @@ function App() {
           id="safety"
           style={{ scrollMarginTop: "90px" }}
         >
-          <div
-            className="safety-content"
-            style={{ textAlign: "left" }}
-          >
+          <div className="safety-content" style={{ textAlign: "left" }}>
             <span className="eyebrow">YOUR SAFETY MATTERS</span>
             <h2>Trade with your eyes open.</h2>
 
@@ -2258,7 +2059,8 @@ function App() {
                   </div>
 
                   <p className="product-location">
-                    <MapPin size={15} /> {selectedProduct.location}
+                    <MapPin size={15} />
+                    {selectedProduct.location}
                   </p>
 
                   <p>{selectedProduct.description}</p>
@@ -2273,9 +2075,7 @@ function App() {
                         {profiles[selectedProduct.seller_id]?.display_name ||
                           selectedProduct.seller}
                       </strong>
-                      <small>
-                        Public seller profile — not identity verified
-                      </small>
+                      <small>Seller profile — not identity verified</small>
                     </div>
                   </div>
 
@@ -2285,19 +2085,19 @@ function App() {
                         className="primary-wide"
                         onClick={() => openEditForm(selectedProduct)}
                       >
-                        <Pencil size={17} /> Edit your listing
+                        <Pencil size={17} />
+                        Edit your listing
                       </button>
 
                       <button
                         className="secondary-wide"
-                        onClick={() =>
-                          handleDeleteListing(selectedProduct)
-                        }
-                        disabled={
-                          deletingProductId === selectedProduct.id
-                        }
+                        onClick={() => handleDeleteListing(selectedProduct)}
+                        disabled={deletingProductId === selectedProduct.id}
                       >
-                        <Trash2 size={17} /> Delete listing
+                        <Trash2 size={17} />
+                        {deletingProductId === selectedProduct.id
+                          ? "Deleting…"
+                          : "Delete listing"}
                       </button>
                     </>
                   ) : (
@@ -2305,7 +2105,8 @@ function App() {
                       className="primary-wide"
                       onClick={() => startConversation(selectedProduct)}
                     >
-                      <MessageCircle size={17} /> Contact seller
+                      <MessageCircle size={17} />
+                      Contact seller
                     </button>
                   )}
 
@@ -2322,6 +2123,7 @@ function App() {
                           : "none"
                       }
                     />
+
                     {saved.includes(selectedProduct.id)
                       ? "Remove from saved"
                       : "Save listing"}
@@ -2331,12 +2133,14 @@ function App() {
                     <button
                       className="report-link"
                       onClick={() => {
-                        if (!user) return openAuth();
+                        if (!user) {
+                          openAuth();
+                          return;
+                        }
 
                         setReportReason(reportReasons[0]);
                         setReportDetails("");
                         setFormError("");
-
                         setModal({
                           type: "report",
                           product: selectedProduct,
@@ -2362,12 +2166,10 @@ function App() {
                   <UserRound size={35} />
                 </div>
 
-                <h2 id="modal-title">Seller profile</h2>
+                <h2 id="modal-title">{modalTitle}</h2>
 
                 {modal.loading ? (
-                  <p className="form-intro">
-                    Loading seller profile…
-                  </p>
+                  <p className="form-intro">Loading seller profile…</p>
                 ) : (
                   <>
                     <p>
@@ -2380,14 +2182,18 @@ function App() {
 
                     {modal.profile?.location && (
                       <p className="product-location">
-                        <MapPin size={15} /> {modal.profile.location}
+                        <MapPin size={15} />
+                        {modal.profile.location}
                       </p>
                     )}
 
-                    <p className="form-intro">
-                      {modal.profile?.bio ||
-                        "This seller has not added a profile description."}
-                    </p>
+                    {modal.profile?.bio ? (
+                      <p className="form-intro">{modal.profile.bio}</p>
+                    ) : (
+                      <p className="form-intro">
+                        This seller has not added a profile description.
+                      </p>
+                    )}
 
                     <div className="profile-status">
                       <ShieldCheck size={18} />
@@ -2401,12 +2207,12 @@ function App() {
 
                     <button
                       className="primary-wide"
-                      onClick={() =>
+                      onClick={() => {
                         setModal({
                           type: "product",
                           product: selectedProduct,
-                        })
-                      }
+                        });
+                      }}
                     >
                       View listing <ChevronRight size={17} />
                     </button>
@@ -2421,11 +2227,13 @@ function App() {
                   <UserRound size={35} />
                 </div>
 
-                <h2 id="modal-title">Your account</h2>
+                <h2 id="modal-title">{modalTitle}</h2>
 
                 {user ? (
                   <>
-                    <p><strong>{displayName}</strong></p>
+                    <p>
+                      <strong>{displayName}</strong>
+                    </p>
 
                     <p
                       className="form-intro"
@@ -2435,14 +2243,16 @@ function App() {
                     </p>
 
                     <div className="profile-status">
-                      <ShieldCheck size={18} /> Signed in
+                      <ShieldCheck size={18} />
+                      Signed in
                     </div>
 
                     <button
                       className="primary-wide"
                       onClick={openProfileEditor}
                     >
-                      <Pencil size={17} /> Edit public profile
+                      <Pencil size={17} />
+                      Edit public profile
                     </button>
 
                     <button
@@ -2462,7 +2272,8 @@ function App() {
                       className="secondary-wide"
                       onClick={openInbox}
                     >
-                      <Inbox size={17} /> Messages
+                      <Inbox size={17} />
+                      Messages
                     </button>
 
                     <button
@@ -2493,11 +2304,9 @@ function App() {
                       You are not currently signed in.
                     </p>
 
-                    <button
-                      className="primary-wide"
-                      onClick={openAuth}
-                    >
-                      <UserRound size={17} /> Login / Register
+                    <button className="primary-wide" onClick={openAuth}>
+                      <UserRound size={17} />
+                      Login / Register
                     </button>
                   </>
                 )}
@@ -2508,11 +2317,11 @@ function App() {
               <>
                 <span className="eyebrow">YOUR PUBLIC INFORMATION</span>
 
-                <h2 id="modal-title">Edit your profile</h2>
+                <h2 id="modal-title">{modalTitle}</h2>
 
                 <p className="form-intro">
-                  This information is displayed on your public seller
-                  profile. Do not include private information.
+                  This information is displayed on your public seller profile.
+                  Do not include private information.
                 </p>
 
                 <form onSubmit={saveProfile}>
@@ -2564,21 +2373,6 @@ function App() {
                     />
                   </label>
 
-                  <label>
-                    Profile image URL (optional)
-                    <input
-                      type="url"
-                      value={profileForm.avatar_url}
-                      onChange={(event) =>
-                        setProfileForm((current) => ({
-                          ...current,
-                          avatar_url: event.target.value,
-                        }))
-                      }
-                      placeholder="https://..."
-                    />
-                  </label>
-
                   {formError && (
                     <p role="alert" className="form-error">
                       {formError}
@@ -2625,18 +2419,14 @@ function App() {
                       <button
                         className="conversation-list-item"
                         key={conversation.id}
-                        onClick={() =>
-                          openConversation(conversation)
-                        }
+                        onClick={() => openConversation(conversation)}
                       >
                         <span className="conversation-avatar">
                           <UserRound size={20} />
                         </span>
 
                         <span className="conversation-summary">
-                          <strong>
-                            {conversation.otherUserName}
-                          </strong>
+                          <strong>{conversation.otherUserName}</strong>
                           <small>
                             {conversation.product?.name ||
                               "Marketplace listing"}
@@ -2661,7 +2451,8 @@ function App() {
                   className="back-to-inbox"
                   onClick={openInbox}
                 >
-                  <ArrowLeft size={16} /> Back to messages
+                  <ArrowLeft size={16} />
+                  Back to messages
                 </button>
 
                 <h2 id="modal-title">
@@ -2677,9 +2468,7 @@ function App() {
 
                 <div className="message-list" aria-live="polite">
                   {messagesLoading ? (
-                    <p className="message-empty">
-                      Loading messages…
-                    </p>
+                    <p className="message-empty">Loading messages…</p>
                   ) : messages.length === 0 ? (
                     <p className="message-empty">
                       This is the beginning of your conversation. Send a
@@ -2696,9 +2485,7 @@ function App() {
                         }`}
                       >
                         <p>{message.body}</p>
-                        <small>
-                          {formatDateTime(message.created_at)}
-                        </small>
+                        <small>{formatDateTime(message.created_at)}</small>
                       </div>
                     ))
                   )}
@@ -2706,10 +2493,7 @@ function App() {
                   <div ref={messageEndRef} />
                 </div>
 
-                <form
-                  className="message-form"
-                  onSubmit={sendMessage}
-                >
+                <form className="message-form" onSubmit={sendMessage}>
                   <textarea
                     rows={2}
                     value={messageText}
@@ -2724,9 +2508,7 @@ function App() {
                   <button
                     className="sell-button"
                     type="submit"
-                    disabled={
-                      messageSending || !messageText.trim()
-                    }
+                    disabled={messageSending || !messageText.trim()}
                     aria-label="Send message"
                   >
                     <Send size={17} />
@@ -2749,11 +2531,7 @@ function App() {
                     : "SELL ON SAFETRADE"}
                 </span>
 
-                <h2 id="modal-title">
-                  {modal.type === "edit"
-                    ? "Edit your listing"
-                    : "Post a listing"}
-                </h2>
+                <h2 id="modal-title">{modalTitle}</h2>
 
                 <p className="form-intro">
                   {modal.type === "edit"
@@ -2869,9 +2647,7 @@ function App() {
                     !removeExistingImage &&
                     modal.product?.image && (
                       <div className="image-edit-preview">
-                        <p className="form-intro">
-                          Current product photo
-                        </p>
+                        <p className="form-intro">Current product photo</p>
 
                         <img
                           src={modal.product.image}
@@ -2890,13 +2666,11 @@ function App() {
 
                   {imagePreview && (
                     <div className="image-edit-preview">
-                      <p className="form-intro">
-                        New photo preview
-                      </p>
+                      <p className="form-intro">New photo preview</p>
 
                       <img
                         src={imagePreview}
-                        alt="Preview of product"
+                        alt="Preview of the product being listed"
                       />
 
                       <button
@@ -2919,9 +2693,9 @@ function App() {
 
                   <div className="form-note">
                     <ShieldCheck size={17} />
-                    Add one JPG, PNG or WEBP photo (maximum 5 MB). Do not
-                    include private contact or payment information in your
-                    listing.
+                    Add one JPG, PNG, or WEBP photo (maximum 5 MB). Do not
+                    include private contact or payment information in
+                    your listing.
                   </div>
 
                   {formError && (
@@ -2953,16 +2727,14 @@ function App() {
 
             {modal.type === "report" && (
               <>
-                <span className="eyebrow">
-                  HELP KEEP SAFETRADE SAFE
-                </span>
+                <span className="eyebrow">HELP KEEP SAFETRADE SAFE</span>
 
                 <h2 id="modal-title">Report listing</h2>
 
                 <p className="form-intro">
                   Report a listing that appears suspicious, misleading or
-                  inappropriate. Reports are recorded for review;
-                  submission does not automatically remove a listing.
+                  inappropriate. Reports are recorded for review; submission
+                  does not automatically remove a listing.
                 </p>
 
                 <form onSubmit={submitReport}>
@@ -3007,9 +2779,7 @@ function App() {
                     disabled={reportSubmitting}
                   >
                     <Flag size={17} />
-                    {reportSubmitting
-                      ? "Submitting…"
-                      : "Submit report"}
+                    {reportSubmitting ? "Submitting…" : "Submit report"}
                   </button>
                 </form>
               </>
@@ -3021,14 +2791,11 @@ function App() {
                   <MessageCircle size={30} />
                 </div>
 
-                <h2 id="modal-title">{modal.title}</h2>
+                <h2 id="modal-title">{modalTitle}</h2>
 
                 <p className="form-intro">{modal.text}</p>
 
-                <button
-                  className="primary-wide"
-                  onClick={closeModal}
-                >
+                <button className="primary-wide" onClick={closeModal}>
                   Close
                 </button>
               </>
